@@ -3,7 +3,7 @@ from .log import log
 from typing import Any, Literal
 import json
 def sendMessage(
-  conn:multiprocessing.connection.PipeConnection,
+  conn:multiprocessing.connection.Connection,
   messageId:str,
   status:Literal["completed", "failed", "healthy", "unhealthy"],
   reason:str = "",

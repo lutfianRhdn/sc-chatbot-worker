@@ -34,10 +34,10 @@ class Supervisor:
           'port':8000
         })
         
-        self.create_worker("TemplateWorker", count=1, config={
-          # Add any configuration needed for your worker here
-          'example_config': 'value'
-        })
+        # self.create_worker("TemplateWorker", count=1, config={
+        #   # Add any configuration needed for your worker here
+        #   'example_config': 'value'
+        # })
         
         ####
         # until this part
