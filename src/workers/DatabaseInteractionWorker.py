@@ -65,7 +65,8 @@ class DatabaseInteractionWorker(Worker):
               method = destSplited[1]
               param= destSplited[2]
               instance_method = getattr(self,method)
-              result = instance_method(param)
+              print(f"Calling method: {method} with param: {param} and data: {message.get('data', {})}")
+              result = instance_method(id=param, data=message.get("data", {}))
               print(f"Received message: {result}")
               sendMessage(
                   conn=self.conn, 
@@ -93,38 +94,64 @@ class DatabaseInteractionWorker(Worker):
       
       self._isBusy= False
       return {"data":data,"destination":["RestApiWorker/onProcessed"]}
+  def createNewHistory(self,id,data):
+    print(data)
+    created = self._db['history'].insert_one({
+      "process": [],
+      "question": data.get("question", ""),
+      "answer": data.get("answer", ""),
+      "created_at": data.get("created_at", time.time()),
+      "updated_at": data.get("updated_at", time.time())
       
-  def createNewProgress(self, process_name, input, output):
-    id = ObjectId("687e749271ceb09ff68dd0c8")
+    })
+    print(f"New history created with id: {created.inserted_id}")
+    return {"data":[{"_id":created.inserted_id}],"destination":["RestApiWorker/onProcessed"]}
+
+    
+    
+  def createNewProgress(self,id,data):
+    process_name = data.get('process_name', '')
+    input = data.get('input', '')
+    output = data.get('output', '')
+    
     print(f"Creating new progress for {process_name} with input: {input} and output: {output}")
-    data = self._db['history'].find_one({"_id": id})
-    print(data,"data")
+    data = self._db['history'].find_one({"_id": ObjectId(id)})
     processed = data.get('process', [])
     processed.append({
       "process_name": process_name,
       "input": input,
-      "output": output
+      "output": output,
+      "sub_process": []
     })
     print(processed,"processed")
-    self._db['history'].update_one(
-        {"_id": id},
+    updated = self._db['history'].update_one(
+        {"_id": ObjectId(id)},
         {"$set": {
           "process": processed
           }}
     )
-    print(f"New progress created for {process_name} with input: {input} and output: {output}")
+    print(f"Updated history with id: {id} to include new progress")
+    return {"data":[{"_id":id}],"destination":["RestApiWorker/onProcessed"]}
+    # print(f"New progress created for {process_name} with input: {input} and output: {output}")
    
 
     
-  def updateProgress(self, process_name, sub_process_name, output, input):
-      id = ObjectId("687e749271ceb09ff68dd0c8")
-      message = self._db['history'].find_one({"_id": id})
+  def updateProgress(self,id,data):
+      print(f"Updating progress for id: {id} with data: {data}")
+      process_name = data.get('process_name', '')
+      sub_process_name = data.get('sub_process_name', '')
+      input = data.get('input', '')
+      output = data.get('output', '')
+      message = self._db['history'].find_one({"_id": ObjectId(id)})
+      print(f"Found message: {message}")
       process_list = message.get('process', [])
 
       # Cek apakah proses dengan nama process_name sudah ada
       process_found = False
       for process in process_list:
           if process['process_name'] == process_name:
+              print(f"Process {process_name} found, updating sub-process.")
+              print(f"Sub-process name: {sub_process_name}, Input: {input}, Output: {output}")
               process['sub_process'].append({
                   "sub_process_name": sub_process_name,
                   "input": input,
@@ -146,11 +173,12 @@ class DatabaseInteractionWorker(Worker):
 
       # Simpan kembali ke MongoDB
       self._db['history'].update_one(
-          {"_id": id},
+          {"_id": ObjectId(id)},
           {"$set": {
               "process": process_list
           }}
       )
+      return {"data":[{"_id":id}],"destination":["RestApiWorker/onProcessed"]}
       
   
 ############### Helper function to convert ObjectId to string in a list of documents

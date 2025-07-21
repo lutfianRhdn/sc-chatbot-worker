@@ -25,17 +25,12 @@ class Supervisor:
         # just edit this part to add your workers
         ####
         
-        # self.create_worker("DatabaseInteractionWorker", count=1, config={
-        #   'connection_string': 'mongodb+srv://application:skripsi@socialabs.pjkgs8t.mongodb.net/',
-        #   'database': 'chatbot',
-        #   "TAVILY_API_KEY" : "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",
-        #     "AZURE_OPENAI_API_KEY" : "2MQNDFv4maWOJtsHOTV4J1grfhWkmfgIzwwX20OTX3aLs5eml1VTJQQJ99BEACYeBjFXJ3w3AAABACOGf0dD",
-        #     "AZURE_OPENAI_ENDPOINT" : "https://crag-skripsi.openai.azure.com/",
-        #     "AZURE_OPENAI_DEPLOYMENT_NAME" : "gpt-4.1",
-        #     "AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING" : "text-embedding-3-large",
-        #     "AZURE_OPENAI_API_VERSION" : "2025-01-01-preview",
-        # })
+        self.create_worker("DatabaseInteractionWorker", count=1, config={
+          'connection_string': 'mongodb+srv://application:skripsi@socialabs.pjkgs8t.mongodb.net/',
+          'database': 'chatbot'
+        })
         
+        # sendMessage()
         self.create_worker("RestApiWorker", count=1, config={
           'port':8000
         })

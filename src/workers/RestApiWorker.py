@@ -143,7 +143,49 @@ class RestApiWorker(FlaskView, Worker):
           return jsonify(response["result"]), 200
       else:
           return jsonify({"error": "Unknown error"}), 500
+    @route('/send-test', methods=['GET'])
+    def sendTest(self):
+        """
+        A test route to send a message to another worker.
+        """
+        response = self.sendToOtherWorker(
+            destination=["DatabaseInteractionWorker/createNewHistory/"],
+            data={
+                "question": "What is the capital of France?",
+                "projectId": "12345"
+            }
+        )
+        # print(response)
+        id = response.get("result", [{}])[0].get("_id", "unknown_id")
+        process_name = "test_process1"
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/createNewProgress/{id}"],
+            data={
+                "process_name": process_name,
+                "input": "test_input1",
+                "output": "test_output1",
+            }
+        )
+        #    sub_process_name = data.get('sub_process_name', '')
+    #   input = data.get('input', '')
+    #   output = data.get('output', '')
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{id}"],
+            data={
+                "process_name": process_name,
+                "sub_process_name": "test_sub_process",
+                "input": "test_sub_process-2",
+                "output": "tes-2",
+            }
+        )
+        if response["status"] == "timeout":
+            return jsonify({"error": "Request timed out"}), 504
+        elif response["status"] == "completed":
+            return jsonify(response["result"]), 200
+        else:
+            return jsonify({"error": "Unknown error"}), 500
 
 def main(conn: Connection, config: dict):
+    
     worker = RestApiWorker()
     worker.run(conn, config.get("port", 5000))
