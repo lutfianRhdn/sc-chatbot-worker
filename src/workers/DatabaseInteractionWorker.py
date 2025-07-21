@@ -1,6 +1,8 @@
 from multiprocessing.connection import Connection
 
 from pymongo import MongoClient
+from bson.objectid import ObjectId
+
 import asyncio
 from utils.log import log
 from utils.handleMessage import sendMessage
@@ -82,7 +84,64 @@ class DatabaseInteractionWorker(Worker):
       self._isBusy= False
       return {"data":data,"destination":["RestApiWorker/onProcessed"]}
       
+  def createNewProgress(self, process_name, input, output):
+    id = ObjectId("687e749271ceb09ff68dd0c8")
+    print(f"Creating new progress for {process_name} with input: {input} and output: {output}")
+    data = self._db['history'].find_one({"_id": id})
+    print(data,"data")
+    processed = data.get('process', [])
+    processed.append({
+      "process_name": process_name,
+      "input": input,
+      "output": output
+    })
+    print(processed,"processed")
+    self._db['history'].update_one(
+        {"_id": id},
+        {"$set": {
+          "process": processed
+          }}
+    )
+    print(f"New progress created for {process_name} with input: {input} and output: {output}")
+   
+
     
+  def updateProgress(self, process_name, sub_process_name, output, input):
+      id = ObjectId("687e749271ceb09ff68dd0c8")
+      message = self._db['history'].find_one({"_id": id})
+      process_list = message.get('process', [])
+
+      # Cek apakah proses dengan nama process_name sudah ada
+      process_found = False
+      for process in process_list:
+          if process['process_name'] == process_name:
+              process['sub_process'].append({
+                  "sub_process_name": sub_process_name,
+                  "input": input,
+                  "output": output
+              })
+              process_found = True
+              break
+
+      # Jika belum ada, buat entri baru
+      if not process_found:
+          process_list.append({
+              "process_name": process_name,
+              "sub_process": [{
+                  "sub_process_name": sub_process_name,
+                  "input": input,
+                  "output": output
+              }]
+          })
+
+      # Simpan kembali ke MongoDB
+      self._db['history'].update_one(
+          {"_id": id},
+          {"$set": {
+              "process": process_list
+          }}
+      )
+      
   
 ############### Helper function to convert ObjectId to string in a list of documents
   
