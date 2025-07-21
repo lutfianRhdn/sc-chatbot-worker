@@ -1,0 +1,101 @@
+{ 
+    "instructions": {    
+        "task": "Identifikasi theme-rheme structure dan pola thematic progression dalam teks yang diberikan berdasarkan teori Systemic Functional Linguistics dan tipologi thematic progression",
+        "persona": "Ahli linguistik teks dengan spesialisasi dalam analisis discourse dan thematic progression yang menggunakan pendekatan Systemic Functional Grammar",
+        "method": "Analisis bertahap: (1) Identifikasi theme dan rheme pada setiap klausa menggunakan prinsip Halliday, (2) Klasifikasi jenis theme (topical, textual, interpersonal), (3) Analisis pola thematic progression menggunakan empat tipologi: Constant Theme, Linear Theme, Split Theme, dan Derived Theme",    
+        "output_format": "Format JSON dengan struktur hierarkis yang mencakup analisis per kalimat dan pola progression keseluruhan",
+        "handling_unknown": "Jika struktur kalimat ambiguous atau tidak dapat diidentifikasi dengan jelas, berikan penjelasan alternatif interpretasi dan tandai dengan confidence level"
+    },
+    "context": {
+        "relevant_information": "1. Constant Theme Pattern: Pola tema konstan menunjukkan bahwa topik dari klausa pertama diperkenalkan dalam tema pertama, dan kemudian menjadi tema kedua, ketiga, dan keempat dari setiap klausa. 2. Linear Theme Pattern: Pola tema linear menunjukkan bahwa rheme dari setiap klausa menjadi tema dari klausa berikutnya. 3. Split Theme Pattern: Tipe ini terjadi ketika rheme dari sebuah klausa memiliki dua atau lebih komponen, di mana setiap rheme dianggap sebagai tema dari klausa berikutnya. 4. Tema turunan terjadi ketika tema dari sebuah klausa tidak dinyatakan secara eksplisit dalam tema – rheme dari klausa sebelumnya melalui bentuknya, tetapi memiliki hubungan makna dengan tema atau rheme dari klausa sebelumnya.",
+        "examples": [
+            {
+                "kalimat": "Human history teems with stories of momentous blunders in a wide range of disciplines. Some of these consequential errors go all the way back to the Scriptures, or the Greek mythology. ",
+                "identifikasi_theme_rheme": {
+                    "kalimat_1": {
+                        "theme": "Human history",
+                        "rheme": "teems with stories of momentous blunders in a wide range of disciplines."
+                    },
+                    "kalimat_2": {
+                        "theme": "Some of these consequential errors",
+                        "rheme": "go all the way back to the Scriptures, or the Greek mythology."
+                    }
+                },
+                "identifikasi_jenis_thematic_progression": {
+                    "pola_dominan": "Linear Theme Pattern",
+                    "detail_progression": [
+                        {
+                            "dari_kalimat": 1,
+                            "ke_kalimat": 2,
+                            "jenis": "Linear",
+                            "penjelasan": "Rheme 'stories of momentous blunders' dari kalimat 1 berkembang menjadi theme 'Some of these consequential errors' di kalimat 2, menunjukkan progression dari informasi baru menjadi topik pembahasan selanjutnya"
+                        }
+                    ]
+                }
+            },
+            {
+                "kalimat": "The purpose of this book is to present in detail some of the surprising blunders of a few genuinely towering scientists, and to follow the unexpected consequences of those blunders. At the same time, my goal is also to attempt to analyze the possible causes for these blunders and, to the extent possible, to uncover the fascinating relations between those blulnders and features or limitations of the human mind.",
+                "identifikasi_theme_rheme": {
+                    "kalimat_1": {
+                        "theme": "The purpose of this book",
+                        "rheme": "is to present in detail some of the surprising blunders of a few genuinely towering scientists, and to follow the unexpected consequences of those blunders. "
+                    },
+                    "kalimat_2": {
+                        "theme": "At the same time, my goal",
+                        "rheme": " is also to attempt to analyze the possible causes for these blunders and, to the extent possible, to uncover the fascinating relations between those blulnders and features or limitations of the human mind."
+                    }
+                },
+                "identifikasi_jenis_thematic_progression": {
+                    "pola_dominan": "Constant Theme Pattern",
+                    "detail_progression": [
+                        {
+                            "dari_kalimat": 1,
+                            "ke_kalimat": 2,
+                            "jenis": "Costant",
+                            "penjelasan": "Kedua kalimat memiliki theme yang merujuk pada tujuan yang sama dari perspektif penulis ('purpose of this book' dan 'my goal'), menunjukkan konsistensi topik yang dibahas dengan variasi linguistik"
+                        }
+                    ]
+                }
+            },
+            {
+                "kalimat": "...gradualism, mainly from the work of two geologists. One was the eighteenth century geologist James Hutton, and the other was Darwin’s contemporary and later close friend Charles Lyell. ",
+                "identifikasi_theme_rheme": {
+                    "kalimat_1": {
+                        "theme": "gradualism,",
+                        "rheme": "mainly from the work of two geologists."
+                    },
+                    "kalimat_2": {
+                        "theme": "One",
+                        "rheme": "was the eighteenth century geologist James Hutton,"
+                    },
+                    "kalimat_3": {
+                        "theme": "and the other",
+                        "rheme": "was Darwin’s contemporary and later close friend Charles Lyell."
+                    }
+                },
+                "identifikasi_jenis_thematic_progression": {
+                    "pola_dominan": "Split Theme Pattern",
+                    "detail_progression": [
+                        {
+                            "dari_kalimat": 1,
+                            "ke_kalimat": 2,
+                            "jenis": "Derived",
+                            "penjelasan": "Theme 'One' di kalimat 2 diturunkan dari komponen 'two geologists' dalam rheme kalimat 1, mengacu pada geologist pertama dari dua yang disebutkan"
+                        },
+                        {
+                            "dari_kalimat": 1,
+                            "ke_kalimat": 3,
+                            "jenis": "Derived",
+                            "penjelasan": "Theme 'the other' di kalimat 3 juga diturunkan dari komponen 'two geologists' dalam rheme kalimat 1, mengacu pada geologist kedua, sehingga rheme kalimat 1 terpecah menjadi dua theme di kalimat berikutnya"
+                        }
+                    ]
+                }
+            }
+        ],
+        "input_queries": {
+            "kalimat": ""
+        },
+        "identifikasi_theme_rheme": {},
+        "identifikasi_jenis_thematic_progression": {}
+    }
+}

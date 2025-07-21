@@ -1,0 +1,18 @@
+{
+    "instructions": {   
+        "task": "Identifikasi logical fallacy pada respons chatbot",
+        "persona": "Pakar linguistik yang terampil dalam memahami struktur argumen.",
+        "method": "Analisis respons chatbot terdapat logical fallacy atau tidak berdasarkan counterexample yang diberikan. Jika hasil counterexample adalah 'sat' maka bisa jadi ada logical fallacy, jika hasil counterexample adalah 'unsat' maka sudah pasti tidak ada logical fallacy. Jika ada logical fallacy, klasifikasikan jenisnya berdasarkan definisi yang diberikan.",
+        "output_format": "Format JSON",
+        "handling_unknown": "Jika logical fallacy tidak ditemukan cukup jawab saja tidak ada atau kosong."
+    },  
+    "context": {   
+        "relevant_information": "1) Hasty Generalization -> adalah Menarik kesimpulan berdasarkan ukuran sampel yang kecil, daripada melihat statistik yang jauh lebih sesuai dengan situasi umum atau rata-rata. Bentuk logika form nya adalah sampel s diambil dari populasi p. sampel s adalah bagian yang sangat kecil dari populasi p. kesimpulan c diambil dari sampel s dan diterapkan pada populasi p.\n 2) Ad Hominem -> adalah Menyerang orang yang membuat argumen, dan bukan argumen itu sendiri, ketika serangan terhadap   orang tersebut sama sekali tidak relevan dengan argumen yang dibuat oleh orang tersebut. Bentuk logika formnya adalah orang 1 mengklaim y. orang 1 adalah orang bodoh. oleh karena itu, y tidak benar.\n 3) Appeal to Common Belief -> Ketika klaim bahwa sebagian besar atau banyak orang secara umum atau dari kelompok tertentu menerima suatu keyakinan sebagai kebenaran disajikan sebagai bukti untuk klaim tersebut. Menerima keyakinan orang lain, atau keyakinan banyak orang, tanpa menuntut bukti mengapa orang tersebut menerima keyakinan itu, adalah pemikiran yang malas dan cara yang berbahaya untuk menerima informasi. Bentuk logika formnya adalah Banyak orang percaya X. Oleh karena itu, X pasti benar.\n 4) Slippery Slope -> adalah Ketika suatu peristiwa awal yang relatif tidak signifikan dianggap akan memicu peristiwa yang lebih besar, yang kemudian memicu peristiwa lebih besar lagi, dan seterusnya, hingga mencapai suatu peristiwa akhir yang sangat signifikan—padahal hubungan antar setiap peristiwa tidak hanya tidak berdasar, tetapi semakin tidak mungkin terjadi di setiap tahapannya. Biasanya, banyak peristiwa terlibat dalam kekeliruan logika ini, tetapi sebenarnya hanya dua yang diperlukan—sering kali dihubungkan dengan ungkapan 'nanti lama-lama...'. Bentuk logika formnya adalah Jika A, maka B, lalu C, ... hingga akhirnya Z!.\n 5) Appeal to Fear -> adalah Ketika ketakutan—yang tidak didasarkan pada bukti atau alasan logis—digunakan sebagai pendorong utama untuk membuat orang lain menerima suatu gagasan, usulan, atau kesimpulan. Bentuk logika formnya adalah Jika kamu tidak menerima X sebagai kebenaran, sesuatu yang buruk akan terjadi padamu. Oleh karena itu, X pasti benar.\n 6) False Dilemma -> adalah Ketika hanya dua pilihan yang diberikan, padahal sebenarnya ada lebih banyak opsi, atau terdapat rentang kemungkinan di antara dua kutub ekstrem. False dilemma biasanya ditandai dengan bahasa 'antara ini atau itu', tetapi juga bisa muncul dalam bentuk penghilangan pilihan lain. Varian lainnya adalah false trilemma, yaitu ketika tiga pilihan disajikan padahal ada lebih banyak opsi. Bentuk logika formnya adalah X atau Y lah yang benar. X, Y, atau Z lah yang benar.",    
+        "counterexample": "",    
+        "respons_chatbot": "",  
+        "logical_fallacy": {
+            "jenis": "",
+            "kalimat_teridentifikasi_logical_fallacy": ""
+        }
+    }
+}

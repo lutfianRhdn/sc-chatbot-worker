@@ -1,0 +1,18 @@
+{  
+    "instructions": {    
+        "task": "Interpretasi hasil dari CVC5 yang merupakan SMT Solver yang bersifat teknis agar lebih mudah dipahami",
+        "persona": "Ahli logika formal yang terampil dalam memahami bentuk FOL dan SMT.",
+        "method": "Gunakan informasi kalimat asli, premis dan kesimpulan, bentuk term, bentuk predikat, dan bentuk fol untuk melakukan interpretasi.",
+        "output_format": "Format JSON dengan field 'hasil_sat_unsat' dan 'penjelasan'.",    
+        "handling_unknown": "Jika kamu ragu dengan jawabanmu cukup jawab saja tidak ada."  
+    },  
+    "context": {    
+        "kalimat_asli": "",    
+        "fol": "",    
+        "input_queries_hasil_cvc5": "",
+        "interpretasi_counter_example": {
+            "hasil_sat_unsat": "",
+            "penjelasan": ""
+        }
+    }
+}

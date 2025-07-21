@@ -1,0 +1,91 @@
+{
+    "instructions": {
+        "task": "Menentukan terms yang terdapat dalam premis dan kesimpulan yang diberikan dalam mendukung pembentukan First Order Logic (FOL).",
+        "persona": "Pakar linguistik yang terampil dalam mengidentifikasi dan memahami penggunaan terms dalam First Order Logic (FOL).",
+        "method": "Identifikasi terms yang di premis dan kesimpulan dengan urutan tentukan konstanta, variabel, baru function",
+        "output_format": "Format JSON dengan field 'terms_premis' dan 'terms_kesimpulan'.",
+        "handling_unknown": "Jika tidak dapat mengidentifikasi terms dengan jelas, field 'terms_premis' atau 'terms_kesimpulan' dapat dikosongkan."
+    },
+    "context": {
+        "relevant_information": "Terms dalam FOL adalah ekspresi yang mewakili objek atau individu dalam domain. Terms memiliki 3 komponen yaitu:\n 1.Variabel = mewakili objek yang tidak spesifik atau belum ditentukan dan termasuk ke dalam logical symbol. Variabel dapat di-assign nilai tertentu, dan digunakan dalam quantification.\n 2. Konstanta = merujuk pada objek tetap dan termasuk ke dalam non-logical sumbols. Konstanta diinterpretasikan sebagai elemen tertentu dari domain, dan tidak berubah dalam berbagai assignment.\n 3.Fungsi = menghasilkan term atau objek baru berdasarkan input terms, termasuk dalam non-logycal symbols, dan tidak menghasilkan nilai true/false.Jika f adalah n-place function symbol dan t₁,...,tₙ adalah terms, maka ft₁...tₙ adalah term. Fungsi mewakili operasi atau mapping dan diinterpretasikan sebagai fungsi dari domain ke domain.",
+        "examples": [
+                        {
+                            "input_queries": {
+                                "premis": ["A tall man loves cheese."],
+                                "kesimpulan": "All tall people like cheese."
+                            },
+                            "terms_premis": [
+                                { "term": "x", "jenis": "variabel", "keterangan": "Representasi orang yang tidak spesifik menggantikan man)" },
+                                { "term": "cheese", "jenis": "konstanta", "keterangan": "Representasi objek spesifik yaitu makanan yang disukai oleh orang tinggi" }
+                            ],
+                            "terms_kesimpulan": [
+                                { "term": "x", "jenis": "variabel", "keterangan": "Representasi orang yang tidak spesifik menggantikan people)" },
+                                { "term": "cheese", "jenis": "konstanta", "keterangan": "Representasi objek spesifik yaitu makanan yang disukai oleh orang tinggi" }
+                            ]
+                        },
+                        {
+                            "input_queries": {
+                                "premis": ["Two dogs are fighting in a field."],
+                                "kesimpulan": "The two dogs are outside."
+                            },
+                            "terms_premis": [
+                                { "term": "x", "jenis": "variabel", "keterangan": "untuk merepresentasikan anjing pertama atau dog" },
+                                { "term": "y", "jenis": "variabel", "keterangan": "untuk merepresentasikan anjing kedua atau dog" },
+                                { "term": "z", "jenis": "variabel", "keterangan": "untuk merepresentasikan lapangan atau field" }
+                            ],
+                            "terms_kesimpulan": [
+                                { "term": "x", "jenis": "variabel", "keterangan": "untuk merepresentasikan anjing pertama atau dog" },
+                                { "term": "y", "jenis": "variabel", "keterangan": "untuk merepresentasikan anjing kedua atau dog" }
+                            ]
+                        },
+                        {
+                            "input_queries": {
+                                "premis": ["A woman sits alone on a park bench in the sun."],
+                                "kesimpulan": "A woman is in a park."
+                            },
+                            "terms_premis": [
+                                { "term": "x", "jenis": "variabel", "keterangan": "untuk merepresentasikan woman/wanita" },
+                                { "term": "y", "jenis": "variabel", "keterangan": "untuk merepresentasikan park bench/bangku taman" },
+                                { "term": "z", "jenis": "variabel", "keterangan": "untuk merepresentasikan sun/matahari (atau lokasi di bawah sinar matahari)" },
+                                { "term": "w", "jenis": "variabel", "keterangan": "untuk merepresentasikan park/taman" }
+                            ],
+                            "terms_kesimpulan": [
+                                { "term": "x", "jenis": "variabel", "keterangan": "untuk merepresentasikan woman/wanita" },
+                                { "term": "w", "jenis": "variabel", "keterangan": "untuk merepresentasikan park/taman" }
+                            ]
+                        },
+                        {
+                            "input_queries": {
+                                "premis": ["A woman is standing at a podium."],
+                                "kesimpulan": "A person is at a podium"
+                            },
+                            "terms_premis": [
+                                { "term": "x", "jenis": "variabel", "keterangan": "untuk merepresentasikan woman/wanita" },
+                                { "term": "y", "jenis": "variabel", "keterangan": "untuk merepresentasikan podium" }
+                            ],
+                            "terms_kesimpulan": [
+                                { "term": "z", "jenis": "variabel", "keterangan": "untuk merepresentasikan person" },
+                                { "term": "y", "jenis": "variabel", "keterangan": "untuk merepresentasikan podium" }
+                            ]
+                        },
+                        {
+                            "input_queries": {
+                                "premis": ["Lebih dari 60% pasal dalam UU TNI tidak lagi sesuai dengan tantangan zaman digital dan geopolitik modern.","Laporan Komisi Transparansi Militer ASEAN (KTMA) menyebutkan bahwa UU TNI saat ini berisiko melemahkan posisi Indonesia dalam kerja sama militer regional."],
+                                "kesimpulan": "Keseluruhan UU TNI sudah usang dan perlu direvisi total."
+                            },
+                            "terms_premis": [
+                                { "term": "x", "jenis": "variabel", "keterangan": "untuk merepresentasikan pasal-pasal dalam UU TNI" }, 
+                                { "term": "y", "jenis": "variabel", "keterangan": "untuk merepresentasikan tantangan zaman digital dan geopolitik modern" }, 
+                                { "term": "z", "jenis": "variabel", "keterangan": "untuk merepresentasikan posisi Indonesia dalam kerja sama militer regional" }, 
+                                { "term": "w", "jenis": "variabel", "keterangan": "untuk merepresentasikan UU TNI" }
+                            ],
+                            "terms_kesimpulan": [
+                                { "term": "w", "jenis": "variabel", "keterangan": "untuk merepresentasikan UU TNI" }
+                            ]
+                        }
+                    ],
+                    "input_queries": "",
+                    "terms_premis": [],
+                    "terms_kesimpulan": []
+    }
+}

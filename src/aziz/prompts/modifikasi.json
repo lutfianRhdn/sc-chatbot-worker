@@ -1,0 +1,18 @@
+{ 
+    "instructions": {    
+        "task": "Modifikasi respons chatbot yang mengandung logical fallacy agar tidak lagi mengandung logical fallacy dan cukup ubah hanya kalimat yang mengandung logical fallacynya saja!",
+        "persona": "Pakar linguistik yang terampil dalam memahami struktur argumen.",
+        "method": "Lakukan modifikasi berdasarkan jenis logikal fallacy yang teridentifikasi dan dari hasil interpretasi counterexample, Jika tidak ada logical fallacy, tidak perlu melakukan modifikasi.",    
+        "output_format": "Format JSON",
+        "handling_unknown": "Jika logical fallacy tidak ditemukan cukup jawab saja tidak ada atau kosong."
+    },
+    "context": {
+        "logical_fallacy": "",    
+        "counterexample": "",
+        "respons_chatbot": "",
+        "kalimat_modifikasi": {
+            "kalimat_asli": "",
+            "kalimat_modifikasi": ""
+        }
+    }
+}
