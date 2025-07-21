@@ -7,10 +7,11 @@ import asyncio
 import time
 import utils.log as log
 from utils.handleMessage import sendMessage, convertMessage
+from .Worker import Worker
 
 app = Flask(__name__)
 
-class RestApiWorker(FlaskView):
+class RestApiWorker(FlaskView, Worker):
     ###############
     # dont edit this part
     ###############
