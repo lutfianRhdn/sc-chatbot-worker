@@ -1,4 +1,5 @@
 from multiprocessing.connection import Connection
+import os
 
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -7,6 +8,10 @@ import asyncio
 from utils.log import log
 from utils.handleMessage import sendMessage
 import time
+
+from langchain_openai import AzureOpenAIEmbeddings
+from langchain_mongodb import MongoDBAtlasVectorSearch
+
 
 
 from .Worker  import Worker
@@ -17,16 +22,21 @@ class DatabaseInteractionWorker(Worker):
   _instanceId: str    
   _isBusy: bool = False
   _client: MongoClient 
-  _db: str 
+  _db_name: str 
   def __init__(self, conn: Connection, config: dict):
     self.conn=conn
-    self._db = config.get("database", "mydatabase") 
+    self._db_name = config.get("database", "mydatabase") 
     self.connection_string = config.get("connection_string", "mongodb://localhost:27017/") 
-
+    self.AZURE_OPENAI_API_KEY = config.get("AZURE_OPENAI_API_KEY")
+    self.AZURE_OPENAI_ENDPOINT = config.get("AZURE_OPENAI_ENDPOINT")
+    self.AZURE_OPENAI_DEPLOYMENT_NAME = config.get("AZURE_OPENAI_DEPLOYMENT_NAME")
+    self.AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING = config.get("AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING")
+    self.AZURE_OPENAI_API_VERSION = config.get("AZURE_OPENAI_API_VERSION")
   def run(self) -> None:
     self._instanceId = "DatabaseInteractionWorker"
     self._client = MongoClient(self.connection_string)
-    self._db= self._client[self._db]
+    self._db= self._client[self._db_name]
+    self.connect_retrieval()
     if not self._client:
       log("Failed to connect to MongoDB", "error")
     log(f"Connected to MongoDB at {self.connection_string}", "success")

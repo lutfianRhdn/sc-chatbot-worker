@@ -90,7 +90,7 @@ class RestApiWorker(FlaskView, Worker):
           destination=destination,
           data=data
       )
-      if not evt.wait(timeout=10):
+      if not evt.wait(timeout=300):
           # timeout
           return {
               "taskId": task_id,
@@ -130,7 +130,7 @@ class RestApiWorker(FlaskView, Worker):
       prompt = request.json.get('prompt')
       
       response = self.sendToOtherWorker(
-          destination=[f"TemplateWorker/test/"],
+          destination=[f"CRAGWorker/test/"],
           data={
               "projectId": projectId,
               "prompt": prompt
