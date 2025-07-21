@@ -1,0 +1,13 @@
+unknown
+(
+; cardinality of BoundSet is 2
+; rep: (as @BoundSet_0 BoundSet)
+; rep: (as @BoundSet_1 BoundSet)
+; cardinality of UnboundSet is 1
+; rep: (as @UnboundSet_0 UnboundSet)
+(define-fun Woman (($x1 BoundSet)) Bool true)
+(define-fun Sits ((_arg_1 BoundSet) (_arg_2 BoundSet)) Bool true)
+(define-fun Park (($x1 BoundSet)) Bool true)
+(define-fun Person (($x1 BoundSet)) Bool true)
+(define-fun In (($x1 BoundSet) ($x2 BoundSet)) Bool true)
+)

@@ -2,7 +2,7 @@ from functions_non_utama import load_prompt_template, llm, fix_json_if_incomplet
 from get_counter_example import get_counter_example
 import json
 
-def transformasi_respons_chatbot_ke_fol(respons):
+def function_transformasi_respons_chatbot_ke_fol(respons):
     chains = ["premis_kesimpulan.json", "terms.json", "atomic_formula.json", "fol.json"]
 
     for chain in chains:
@@ -63,9 +63,25 @@ def transformasi_respons_chatbot_ke_fol(respons):
             print(f"FOL Keseluruhan: {fol_keseluruhan['fol']}")
             fol_keseluruhan = fol_keseluruhan['fol']
 
-    return chain_1, chain_2, chain_3, chain_4, fol_keseluruhan
+    transformasi_respons_chatbot_ke_fol = {
+        'chain_1': {
+            'premis': premis,
+            'kesimpulan': kesimpulan
+        },
+        'chain_2': {
+            'terms_premis': term_premis,
+            'terms_kesimpulan': term_kesimpulan
+        },
+        'chain_3': {
+            'atomic_formula': atomic_formula
+        },
+        'chain_4': {
+            'fol_keseluruhan': fol_keseluruhan
+        }
+    }
+    return transformasi_respons_chatbot_ke_fol
 
-def pembuatan_counter_example(respons, fol_keseluruhan):
+def function_pembuatan_counter_example(respons, fol_keseluruhan):
     hasil_cvc5 = get_counter_example(fol_keseluruhan)
     prompt = load_prompt_template("interpretasi_counter_example.json")
     prompt['context']['kalimat_asli'] = respons
@@ -73,12 +89,43 @@ def pembuatan_counter_example(respons, fol_keseluruhan):
     prompt['context']['input_queries_hasil_cvc5'] = hasil_cvc5
     prompt = json.dumps(prompt, indent=4)
     interpretasi_counter_example = llm(prompt)
-    return interpretasi_counter_example
 
-def klasifikasi_logical_fallacies(respons, counter_example):
+    # Buka dan baca file smt2
+    with open('logical_form.smt2', 'r') as file:
+        smt2_content = file.read()
+
+    pembuatan_counter_example = {
+        'konversi_fol_ke_smt': smt2_content,
+        'smt_solver': hasil_cvc5,
+        'interpretasi_counter_example': {
+            'hasil_sat_unsat': fix_json_if_incomplete(interpretasi_counter_example)['hasil_sat_unsat'],
+            'penjelasan': fix_json_if_incomplete(interpretasi_counter_example)['penjelasan']
+        }
+    }   
+    return pembuatan_counter_example
+
+def function_klasifikasi_logical_fallacies(respons, counter_example):
     prompt = load_prompt_template("klasifikasi_lf.json")
     prompt['context']['respons_chatbot'] = respons  
     prompt['context']['counterexample'] = counter_example
     prompt = json.dumps(prompt, indent=4)
     logical_fallacy = llm(prompt)
+
+    logical_fallacy = {
+        'jenis': fix_json_if_incomplete(logical_fallacy)['logical_fallacy']['jenis'],
+        'kalimat_teridentifikasi_logical_fallacy': fix_json_if_incomplete(logical_fallacy)['logical_fallacy']['kalimat_teridentifikasi_logical_fallacy']
+    }
     return logical_fallacy
+
+def function_perbaikan_respons_chatbot(respons_chatbot, counter_example, logical_fallacy):
+    prompt = load_prompt_template("modifikasi.json")
+    prompt['context']['logical_fallacy'] = str(logical_fallacy)  
+    prompt['context']['counterexample'] = str(counter_example)
+    prompt['context']['respons_chatbot'] = respons_chatbot
+    prompt = json.dumps(prompt, indent=4)
+    modifikasi_respons = llm(prompt)
+    modifikasi_respons = {
+        "kalimat_asli": fix_json_if_incomplete(modifikasi_respons)['kalimat_asli'],
+        "kalimat_modifikasi": fix_json_if_incomplete(modifikasi_respons)['kalimat_modifikasi']
+    }
+    return modifikasi_respons
