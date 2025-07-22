@@ -133,8 +133,36 @@ class DatabaseInteractionWorker(Worker):
     return {"data":[{"_id":id}],"destination":["supervisor"]}
     # print(f"New progress created for {process_name} with input: {input} and output: {output}")
    
+  def updateOutputProcess(self,id,data):
+      print(f"Updating output for id: {id} with data: {data}")
+      process_name = data.get('process_name', '')
+      output = data.get('output', '')
 
+      updated = self._db['history'].update_one(
+          {"_id": ObjectId(id), "process.process_name": process_name},
+          {"$set": {
+              "process.$.output": output,
+              "updated_at": time.time()
+          }}
+      )
+      return {"data":[{"_id":id}],"destination":["supervisor"]}
+
+      
     
+  def updateFinalAnswer(self,id,data):
+      print(f"Updating output for id: {id} with data: {data}")
+      output = data.get('output', '')
+
+      updated = self._db['history'].update_one(
+          {"_id": ObjectId(id)},
+          {"$set": {
+              "answer": output,
+              "updated_at": time.time()
+          }}
+      )
+      return {"data":[{"_id":id}],"destination":["supervisor"]}
+
+      
   def updateProgress(self,id,data):
       print(f"Updating progress for id: {id} with data: {data}")
       process_name = data.get('process_name', '')

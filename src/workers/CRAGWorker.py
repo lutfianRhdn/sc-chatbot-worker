@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.tools.tavily_search import TavilySearchResults
-from typing import List
+from typing import List, final
 from typing_extensions import TypedDict
 from langchain.schema import Document
 from langgraph.graph import END, StateGraph, START
@@ -125,8 +125,40 @@ class CRAGWorker(Worker):
         workflow.add_edge("generate", END)
         # Compile
         self.app = workflow.compile()
-        print("Selesai")
 
+
+        # Define the workflow for CRAG evaluation
+        workflow_evaluasi = StateGraph(GraphState)
+
+        workflow_evaluasi.add_node("s0", self.initial_answer_node)
+        workflow_evaluasi.add_node("s1", self.get_evidence_node)
+        workflow_evaluasi.add_node("s2", self.skeptic_node)
+        workflow_evaluasi.add_node("s3", self.trust_node)
+        workflow_evaluasi.add_node("increment_round", self.increment_round_node)
+        workflow_evaluasi.add_node("s4", self.leader_node)
+
+        # Add edges
+        workflow_evaluasi.add_edge(START, "s0")
+        workflow_evaluasi.add_edge("s0", "s1")
+        workflow_evaluasi.add_edge("s1", "s2")
+        workflow_evaluasi.add_edge("s2", "s3")
+
+        # After trust node, check if we should continue or end based on new logic
+        workflow_evaluasi.add_conditional_edges(
+            "s3",
+            self.should_continue_debate,
+            {
+                "continue_debate": "increment_round",  # Increment round and go back to skeptic
+                "end_debate": "s4"                     # Go to leader node to end
+            }
+        )
+
+        # After incrementing round, go back to skeptic for next round
+        workflow_evaluasi.add_edge("increment_round", "s2")
+        workflow_evaluasi.add_edge("s4", END)
+
+        self.app_evaluasi = workflow_evaluasi.compile()
+        print("Selesai")
 
         #### until this part
         # start background threads *before* blocking server
@@ -234,10 +266,9 @@ class CRAGWorker(Worker):
       # initialize MongoDB python client
       client = MongoClient(self.connection_string)
 
-    #   DB_NAME = self._db_name
-      DB_NAME = "CRAG"
-      COLLECTION_NAME = "CRAG_vectorstores"
-      ATLAS_VECTOR_SEARCH_INDEX_NAME = "crag-index-vectorstores"
+      DB_NAME = self._db_name
+      COLLECTION_NAME = "vectorstores"
+      ATLAS_VECTOR_SEARCH_INDEX_NAME = "index-vectorstores"
 
       MONGODB_COLLECTION = client[DB_NAME][COLLECTION_NAME]
 
@@ -278,7 +309,7 @@ class CRAGWorker(Worker):
             destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
             data={
                 "process_name": self.process_name,
-                "sub_process_name": "retrieve",
+                "sub_process_name": "Retrieval",
                 "input": question,
                 "output": result_retrieve
             },
@@ -341,7 +372,7 @@ class CRAGWorker(Worker):
             destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
             data={
                 "process_name": self.process_name,
-                "sub_process_name": "grade_documents",
+                "sub_process_name": "Retrieval Evaluation",
                 "input": question,
                 "output": result_grade,
             },
@@ -375,7 +406,7 @@ class CRAGWorker(Worker):
             destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
             data={
                 "process_name": self.process_name,
-                "sub_process_name": "transform_query",
+                "sub_process_name": "Keyword Extraction",
                 "input": question,
                 "output": key_word_result,
             },
@@ -414,6 +445,10 @@ class CRAGWorker(Worker):
             # print(d["content"])
             web_result_doc = Document(page_content=d["content"], metadata={"source": d["url"]})
             documents.append(web_result_doc)
+            serialized_docs = [
+                {"content": doc.page_content, "source": doc.metadata['source']}
+                for doc in documents
+            ]
         # print("===WEB SEARCH RESULTS===")
         # print(docs)
         # print(web_results)
@@ -424,9 +459,9 @@ class CRAGWorker(Worker):
             destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
             data={
                 "process_name": self.process_name,
-                "sub_process_name": "web_search",
+                "sub_process_name": "Knowledge Searching",
                 "input": key_word,
-                "output": web_result_doc,
+                "output": serialized_docs,
             },
             messageId=(str(uuid4()))
         )
@@ -447,6 +482,7 @@ class CRAGWorker(Worker):
 
 
         # decompose
+        
         decomposed_docs = []
         for d in documents:
             # Split dokumen menjadi potongan-potongan kecil 
@@ -459,6 +495,7 @@ class CRAGWorker(Worker):
         # print(decomposed_docs)
         # filter
         filtered_docs = []
+        result_kl = []
         for d in decomposed_docs:
             score = self.retrieval_grader.invoke(
                 {"question": question, "document": d.page_content}
@@ -467,26 +504,43 @@ class CRAGWorker(Worker):
             if grade == "Benar":
                 # print("---GRADE: DOCUMENT BENAR---")
                 # print(d.page_content)
+                result_kl.append({"document": d.page_content, "grade": grade})
                 filtered_docs.append(d)
             elif grade == "Salah":
                 # print("---GRADE: DOCUMENT SALAH---")
                 # print(d.page_content)
+                result_kl.append({"document": d.page_content, "grade": grade})
                 continue
             else:
                 # print("---GRADE: DOCUMENT AMBIGU---")
                 # print(d.page_content)
+                result_kl.append({"document": d.page_content, "grade": grade})
                 filtered_docs.append(d)
                 continue
         # print("===FILTERED DOCUMENTS===")
         # print(filtered_docs)
         # recombine
         # Gabungkan isi filtered_docs menjadi satu Document baru
-        recombined_content = "\n".join([d.page_content for d in filtered_docs])
-        documents = [Document(page_content=recombined_content)]
+        # recombined_content = "\n".join([d.page_content for d in filtered_docs])
+        # documents = [Document(page_content=recombined_content)]
         # print("===RECOMBINED DOCUMENTS===")
         # print(documents)
         # print(question)
         # print(key_word)
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
+            data={
+                "process_name": self.process_name,
+                "sub_process_name": "Knowledge Refinement",
+                "input": [doc.page_content for doc in documents],
+                "output": {
+                    "Decompose": [doc.page_content for doc in decomposed_docs],
+                    "Filter": result_kl,
+                    "Recompose": [doc.page_content for doc in filtered_docs]
+                }
+            },
+            messageId=(str(uuid4()))
+        )
         return {"documents": filtered_docs, "question": question, "key_word": key_word}
 
     def generate(self, state):
@@ -523,6 +577,17 @@ class CRAGWorker(Worker):
         # print(documents)
         # print(question)
         # print(generation)
+
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
+            data={
+                "process_name": self.process_name,
+                "sub_process_name": "Generation",
+                "input": question,
+                "output": generation,
+            },
+            messageId=(str(uuid4()))
+        )
         return {"documents": documents, "question": question, "generation": generation}
     
     def decide_to_generate(self, state):
@@ -561,6 +626,308 @@ class CRAGWorker(Worker):
             # We have relevant documents, so generate answer
             # print("---DECISION: GENERATE---")
             return "generate"
+        
+
+    def initial_answer_node(self, state):
+        """
+        Create the initial node of the graph.
+        """
+        print("=== Initial Answer Node ===")
+        claim = state["claim"]
+        # Show the prompt that will be sent
+        prompt_vars = {"input": claim}
+        # print("=== Prompt Initial Answer Node===")
+        # print(prompt_extrac.format(**prompt_vars))
+        text = self.extract_chain.invoke(prompt_vars)
+        # print(text)
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
+            data={
+                "process_name": self.process_name,
+                "sub_process_name": "Claim Detection",
+                "input": claim,
+                "output": text,
+            },
+            messageId=(str(uuid4()))
+        )
+        return {"claim": text, "round_count": 1}
+    
+    def get_evidence_node(self, state):
+        """
+        Create the evidence node of the graph.
+        """
+        print("=== Evidence Node ===")
+        claim = state["claim"]
+        question = state["question"]
+        evidence = state["evidence"]
+
+        serialized_evidence = [{"content": doc.page_content, "source": doc.metadata['source']} for doc in evidence]
+
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
+            data={
+                "process_name": self.process_name,
+                "sub_process_name": "Evidence Retrieval",
+                "input": claim,
+                "output": serialized_evidence,
+            },
+            messageId=(str(uuid4()))
+        )
+        
+        return {"claim": claim, "evidence": evidence, "round_count": state.get("round_count", 1)}
+
+    def skeptic_node(self, state):
+        """
+        Create the skeptic node of the graph.
+        """
+        round_count = state.get("round_count", 1)
+        print(f"=== Skeptic Node - Round {round_count} ===")
+        evidence = state["evidence"]
+        claim = state["claim"]
+        previous_opinion = state.get("previous_opinion", "")
+
+        prompt_vars = {"claim": claim, "evidence": evidence, "previous_opinion": previous_opinion}
+        print("=== Prompt Skeptic Node===")
+        # print(skeptic_prompt.format(**prompt_vars))
+        text = self.skeptic_chain.invoke(prompt_vars)
+        # print(text)
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
+            data={
+                "process_name": self.process_name,
+                "sub_process_name": "Skeptic Evaluation",
+                "input": previous_opinion,
+                "output": text,
+            },
+            messageId=(str(uuid4()))
+        )
+        
+        if previous_opinion:
+            previous_opinion = previous_opinion + "," + text
+        else:
+            previous_opinion = text
+
+        
+        return {"claim": claim, "evidence": evidence, "previous_opinion": previous_opinion, "round_count": round_count}
+    
+    def trust_node(self, state):
+        """
+        Create the trust node of the graph.
+        """
+        round_count = state.get("round_count", 1)
+        print(f"=== Trust Node - Round {round_count} ===")
+        evidence = state["evidence"]
+        claim = state["claim"]
+        previous_opinion = state.get("previous_opinion", "")
+        
+        prompt_vars = {"claim": claim, "evidence": evidence, "previous_opinion": previous_opinion}
+        print("=== Prompt Trust Node===")
+        # print(trust_prompt.format(**prompt_vars))
+        
+        text = self.trust_chain.invoke(prompt_vars)
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
+            data={
+                "process_name": self.process_name,
+                "sub_process_name": "Trust Evaluation",
+                "input": previous_opinion,
+                "output": text,
+            },
+            messageId=(str(uuid4()))
+        )
+        if previous_opinion:
+            previous_opinion = previous_opinion + "," + text
+        else:
+            previous_opinion = text
+        # print(text)
+
+        return {"claim": claim, "evidence": evidence, "previous_opinion": previous_opinion, "round_count": round_count}
+    
+    def increment_round_node(self, state):
+        """
+        Increment the round counter after both agents have spoken.
+        """
+        round_count = state.get("round_count", 1)
+        new_round_count = round_count + 1
+        print(f"=== Completed Round {round_count}, Moving to Round {new_round_count} ===")
+        
+        return {
+            "claim": state["claim"], 
+            "evidence": state["evidence"], 
+            "previous_opinion": state["previous_opinion"],
+            "round_count": new_round_count
+        }
+    
+    def leader_node(self, state):
+        """
+        Create the leader node of the graph.
+        """
+        print("=== Leader Node - Final Decision ===")
+        evidence = state["evidence"]
+        claim = state["claim"]
+        previous_opinion = state["previous_opinion"]
+        
+        prompt_vars = {"claim": claim, "evidence": evidence, "previous_opinion": previous_opinion}
+        print("=== Prompt Leader Node===")
+        # print(leader_prompt.format(**prompt_vars))
+
+        text = self.leader_chain.invoke(prompt_vars)
+        # print(text)
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
+            data={
+                "process_name": self.process_name,
+                "sub_process_name": "Leader Evaluation",
+                "input": previous_opinion,
+                "output": text,
+            },
+            messageId=(str(uuid4()))
+        )
+        return {"claim": claim, "evidence": evidence, "previous_opinion": previous_opinion}
+
+    def extract_factuality_from_opinion(self, opinion_text):
+        """
+        Extract factuality value from opinion text that contains JSON-like structure.
+        """
+        try:
+            # Remove extra whitespace and clean the text
+            opinion_text = opinion_text.strip()
+            
+            # Method 1: Try to find the complete JSON structure
+            # Look for { at start and } at end, handling nested braces
+            start = opinion_text.find('{')
+            if start != -1:
+                brace_count = 0
+                for i in range(start, len(opinion_text)):
+                    if opinion_text[i] == '{':
+                        brace_count += 1
+                    elif opinion_text[i] == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            json_str = opinion_text[start:i+1]
+                            try:
+                                parsed = json.loads(json_str)
+                                if "factuality" in parsed:
+                                    return parsed["factuality"]
+                            except:
+                                pass
+                            break
+            
+            # Method 2: Simple string search for factuality value
+            if '"factuality": true' in opinion_text.lower():
+                return True
+            elif '"factuality": false' in opinion_text.lower():
+                return False
+            elif '"factuality":true' in opinion_text.lower():
+                return True
+            elif '"factuality":false' in opinion_text.lower():
+                return False
+                
+            return None
+        except Exception as e:
+            print(f"Error extracting factuality: {e}")
+            return None
+        
+    def check_factuality_consensus(self, previous_opinion, round_count):
+        """
+        Check if there's consensus on factuality between skeptic and trust agents.
+        Returns True if both agree on factuality value, False otherwise.
+        """
+        if not previous_opinion or round_count < 2:
+            return False
+        
+        # Instead of splitting by comma (which is unreliable due to commas in JSON),
+        # let's find individual JSON objects
+        json_objects = []
+        
+        # Find all complete JSON objects in the string
+        i = 0
+        while i < len(previous_opinion):
+            start = previous_opinion.find('{', i)
+            if start == -1:
+                break
+                
+            brace_count = 0
+            end = -1
+            for j in range(start, len(previous_opinion)):
+                if previous_opinion[j] == '{':
+                    brace_count += 1
+                elif previous_opinion[j] == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        end = j
+                        break
+            
+            if end != -1:
+                json_str = previous_opinion[start:end+1]
+                json_objects.append(json_str)
+                i = end + 1
+            else:
+                break
+        
+        print(f"Found {len(json_objects)} JSON objects")
+        
+        # For round 2, we need at least 4 objects (skeptic1, trust1, skeptic2, trust2)
+        # For round 3, we need at least 6 objects
+        expected_objects = round_count * 2
+        
+        if len(json_objects) < expected_objects:
+            print(f"Not enough JSON objects yet. Expected: {expected_objects}, Got: {len(json_objects)}")
+            return False
+        
+        # Get the last two JSON objects (current round's skeptic and trust)
+        current_round_objects = json_objects[-2:]
+        
+        factuality_values = []
+        for i, json_obj in enumerate(current_round_objects):
+            factuality = self.extract_factuality_from_opinion(json_obj)
+            print(f"JSON object {i+1}: {json_obj[:100]}...")
+            print(f"Extracted factuality: {factuality}")
+            if factuality is not None:
+                factuality_values.append(factuality)
+        
+        # Check if we have factuality values from both agents and they agree
+        if len(factuality_values) == 2 and factuality_values[0] == factuality_values[1]:
+            print(f"Consensus found: both agents agree on factuality = {factuality_values[0]}")
+            return True
+        
+        print("No consensus found")
+        return False
+    
+    def should_continue_debate(self, state):
+        """
+        Determine if the debate should continue based on:
+        1. Minimum 2 rounds
+        2. Maximum 3 rounds 
+        3. Consensus on factuality between skeptic and trust agents
+        """
+        round_count = state.get("round_count", 1)
+        previous_opinion = state.get("previous_opinion", "")
+        
+        print(f"=== Checking debate continuation - Round {round_count} ===")
+        print(f"Previous opinions length: {len(previous_opinion.split(',')) if previous_opinion else 0}")
+        
+        # Must complete at least 2 rounds
+        if round_count < 2:
+            print("Continue: Minimum 2 rounds not reached")
+            return "continue_debate"
+        
+        # Maximum 3 rounds
+        if round_count >= 3:
+            print("End: Maximum 3 rounds reached")
+            return "end_debate"
+        
+        # Check for factuality consensus (only after round 2 or higher)
+        if round_count >= 2:
+            has_consensus = self.check_factuality_consensus(previous_opinion, round_count)
+            if has_consensus:
+                print("End: Factuality consensus reached between skeptic and trust")
+                return "end_debate"
+            else:
+                print("Continue: No factuality consensus yet")
+                return "continue_debate"
+        
+        return "continue_debate"
 
     def test(self,id, data, mId)->None:
         """
@@ -591,6 +958,7 @@ class CRAGWorker(Worker):
             # pprint("\n---\n")
 
         # Final generation
+        final_response = value["generation"]
         print(value["generation"])
         # text = self.casefoldingText("Halo, ini adalah contoh teks untuk diolah.")
         # text = self.cleaningText(text)
@@ -609,18 +977,39 @@ class CRAGWorker(Worker):
 
 
 
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateOutputProcess/{id}"],
+            data={
+                "process_name": self.process_name,
+                "output": value["generation"],
+            },
+            messageId= str(uuid4())
+        )
 
 
-        # process
-        # print("Hello World from CRAGWorker!")
+        input_evaluasi = {
+            "claim": value["generation"],
+            "evidence": value["documents"],
+            "question": value["question"]
+        }
+
+        for output in self.app_evaluasi.stream(input_evaluasi):
+            for key, value in output.items():
+                # Node
+                pprint(f"Node '{key}':")
+                # Optional: print full state at each node
+                # pprint.pprint(value["keys"], indent=2, width=80, depth=None)
+            pprint("\n---\n")
+
 
         #send back to RestAPI
         self.sendToOtherWorker(
           messageId=mId,
           destination=["RestApiWorker/onProcessed"],
-          data=value["generation"]
+          data= final_response
 
           )
+        
       #   sendMessage(
       #     status="completed",
       #     reason="Test method executed successfully.",
