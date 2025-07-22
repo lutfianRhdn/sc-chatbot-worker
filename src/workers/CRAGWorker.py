@@ -53,6 +53,7 @@ class CRAGWorker(Worker):
     route_base = "/"
     conn:Connection
     requests: dict = {}
+    process_name: str = "Reduce information hallucinations by applying CRAG."
     def __init__(self):
         # we'll assign these in run()
         self._port: int = None
@@ -159,7 +160,7 @@ class CRAGWorker(Worker):
                     method = destSplited[1]
                     param= destSplited[2]
                     instance_method = getattr(self,method)
-                    instance_method(message)
+                    instance_method(id = param,mId = message.get("messageId"), data = message.get("data", {}))
             except EOFError:
                 break
             except Exception as e:
@@ -167,7 +168,7 @@ class CRAGWorker(Worker):
               log(f"Listener error: {e}",'error' )
               break
 
-    def sendToOtherWorker(self, destination, messageId: str, data: dict = None) -> None:
+    def sendToOtherWorker(self, messageId,destination, data: dict = None) -> None:
       sendMessage(
           conn=CRAGWorker.conn,
           destination=destination,
@@ -271,6 +272,19 @@ class CRAGWorker(Worker):
     #   print("===RETRIEVED DOCUMENTS===")
     #   print(documents)
       # print(question)
+      page_content = [doc.page_content for doc in documents]
+      result_retrieve = {"documents": page_content, "number_of_documents": len(page_content)}
+      self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
+            data={
+                "process_name": self.process_name,
+                "sub_process_name": "retrieve",
+                "input": question,
+                "output": result_retrieve
+            },
+            messageId=(str(uuid4()))
+      )
+      # print(result_retrieve)
       return {"documents": documents, "question": question}
 
     def grade_documents(self, state):
@@ -295,6 +309,7 @@ class CRAGWorker(Worker):
 
         # print("===DOCUMENTS TO BE GRADED===")
         # print(documents)
+        result_grade = []
         for d in documents:
             score = self.retrieval_grader.invoke(
                 {"question": question, "document": d.page_content}
@@ -303,14 +318,17 @@ class CRAGWorker(Worker):
             if grade == "Benar":
                 # print("---GRADE: DOCUMENT BENAR---")
                 # print(d.page_content)
+                result_grade.append({"document": d.page_content, "grade": "Benar"})
                 filtered_docs.append(d)
             elif grade == "Salah":
                 # print("---GRADE: DOCUMENT SALAH---")
                 # print(d.page_content)
+                result_grade.append({"document": d.page_content, "grade": "Salah"})
                 web_search = "Yes"
             else:
                 # print("---GRADE: DOCUMENT AMBIGU---")
                 # print(d.page_content)
+                result_grade.append({"document": d.page_content, "grade": "Ambigu"})
                 web_search = "Yes"
                 filtered_docs.append(d)
                 continue
@@ -319,6 +337,16 @@ class CRAGWorker(Worker):
         # print(question)
         # print(web_search)
         # print(grade)
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
+            data={
+                "process_name": self.process_name,
+                "sub_process_name": "grade_documents",
+                "input": question,
+                "output": result_grade,
+            },
+            messageId=(str(uuid4()))
+        )
         return {"documents": filtered_docs, "question": question, "web_search": web_search,"grade": grade}
 
     def transform_query(self, state):
@@ -342,6 +370,17 @@ class CRAGWorker(Worker):
         # print(key_word_result)
         # print(documents)
         # print(question)
+
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
+            data={
+                "process_name": self.process_name,
+                "sub_process_name": "transform_query",
+                "input": question,
+                "output": key_word_result,
+            },
+            messageId=(str(uuid4()))
+        )
         return {"documents": documents, "question": question, "key_word":key_word_result}
     
     def preprocess_text(self, text, slang_dict):
@@ -381,6 +420,16 @@ class CRAGWorker(Worker):
         # print(documents)
         # print(question)
         # print(key_word)
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{self.id}"],
+            data={
+                "process_name": self.process_name,
+                "sub_process_name": "web_search",
+                "input": key_word,
+                "output": web_result_doc,
+            },
+            messageId=(str(uuid4()))
+        )
         return {"documents": documents, "question": question, "key_word": key_word}
 
     def knowledge_refinement(self, state):
@@ -513,13 +562,22 @@ class CRAGWorker(Worker):
             # print("---DECISION: GENERATE---")
             return "generate"
 
-    def test(self,message)->None:
+    def test(self,id, data, mId)->None:
         """
         Example method to test the worker functionality.
         Replace this with your actual worker methods.
         """
-        data = message.get("data", {})
         print(data['prompt'])
+        self.id = id
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/createNewProgress/{id}"],
+            data={
+                "process_name": self.process_name,
+                "input": data['prompt'],
+                "output": "",
+            },
+            messageId= str(uuid4())
+        )
 
 
         # Run
@@ -558,7 +616,7 @@ class CRAGWorker(Worker):
 
         #send back to RestAPI
         self.sendToOtherWorker(
-          messageId=message.get("messageId"),
+          messageId=mId,
           destination=["RestApiWorker/onProcessed"],
           data=value["generation"]
 

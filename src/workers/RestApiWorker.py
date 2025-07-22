@@ -1,3 +1,4 @@
+from email.mime import message
 from multiprocessing.connection import Connection
 from flask import Flask, request, jsonify
 from flask_classful import FlaskView, route
@@ -129,8 +130,17 @@ class RestApiWorker(FlaskView, Worker):
       projectId = request.json.get('projectId')
       prompt = request.json.get('prompt')
       
+      message = self.sendToOtherWorker(
+            destination=["DatabaseInteractionWorker/createNewHistory/"],
+            data={
+                "question": prompt,
+                "projectId": projectId
+            }
+        )
+      id = message.get("result", [{}])[0].get("_id", "unknown_id")
+      
       response = self.sendToOtherWorker(
-          destination=[f"CRAGWorker/test/"],
+          destination=[f"CRAGWorker/test/{id}"],
           data={
               "projectId": projectId,
               "prompt": prompt

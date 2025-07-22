@@ -36,7 +36,6 @@ class DatabaseInteractionWorker(Worker):
     self._instanceId = "DatabaseInteractionWorker"
     self._client = MongoClient(self.connection_string)
     self._db= self._client[self._db_name]
-    self.connect_retrieval()
     if not self._client:
       log("Failed to connect to MongoDB", "error")
     log(f"Connected to MongoDB at {self.connection_string}", "success")
@@ -131,7 +130,7 @@ class DatabaseInteractionWorker(Worker):
           }}
     )
     print(f"Updated history with id: {id} to include new progress")
-    return {"data":[{"_id":id}],"destination":["RestApiWorker/onProcessed"]}
+    return {"data":[{"_id":id}],"destination":["supervisor"]}
     # print(f"New progress created for {process_name} with input: {input} and output: {output}")
    
 
@@ -178,9 +177,9 @@ class DatabaseInteractionWorker(Worker):
               "process": process_list
           }}
       )
-      return {"data":[{"_id":id}],"destination":["RestApiWorker/onProcessed"]}
-      
-  
+      return {"data":[{"_id":id}],"destination":["supervisor"]}
+
+
 ############### Helper function to convert ObjectId to string in a list of documents
   
   
