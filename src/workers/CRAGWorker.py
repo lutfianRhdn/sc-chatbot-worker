@@ -93,10 +93,12 @@ class CRAGWorker(Worker):
         self.retrieval_grader = grade_prompt | self.structured_llm_grader
         self.skeptic_chain = skeptic_prompt | self.llm | StrOutputParser()
         self.trust_chain = trust_prompt | self.llm | StrOutputParser()
-        path_slang = "H:/My Drive/UNIKOM/Skripsi/Code/Socialabs/socialabs-chatbot/kamus/slang.xlsx"
+        base_dir = os.path.dirname(os.path.abspath(__file__))  # path ke file ini
+        path_slang = os.path.join(base_dir, "../../kamus/slang.xlsx")
+        print(path_slang)
         if not os.path.exists(path_slang):
             print("slang not found, using default path")
-        df_slang = pd.read_excel(os.path.abspath(path_slang))
+        df_slang = pd.read_excel(path_slang)
         self.slang_dict = dict(zip(df_slang['slang'], df_slang['formal']))
         workflow = StateGraph(GraphState)
 

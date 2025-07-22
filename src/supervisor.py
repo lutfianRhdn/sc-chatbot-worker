@@ -27,26 +27,45 @@ class Supervisor:
         
         self.create_worker("DatabaseInteractionWorker", count=1, config={
           'connection_string': 'mongodb+srv://application:skripsi@socialabs.pjkgs8t.mongodb.net/',
-          'database': 'chatbot'
+          'database': 'chatbot',
+          "dbTweets": "data_gathering",
         })
+        self.create_worker("VectorWorker", count=1, config={
+        'connection_string': 'mongodb+srv://application:skripsi@socialabs.pjkgs8t.mongodb.net/',
+        'database': 'chatbot',
+        "AZURE_OPENAI_ENDPOINT": "https://crag-skripsi.openai.azure.com/",
+        "AZURE_OPENAI_API_KEY" : "2MQNDFv4maWOJtsHOTV4J1grfhWkmfgIzwwX20OTX3aLs5eml1VTJQQJ99BEACYeBjFXJ3w3AAABACOGf0dD",
         
-        # sendMessage()
-        self.create_worker("RestApiWorker", count=1, config={
-          'port':8000
+        "AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING": "text-embedding-3-large",
+        "AZURE_OPENAI_API_VERSION": "2025-01-01-preview",
+        "MONGODB_COLLECTION": "vectorstores",
+        "ATLAS_VECTOR_SEARCH_INDEX_NAME": "index-vectorstores",
         })
+        self.create_worker("RabbitMQWorker", count=1, config={
+            'connection_string': 'amqp://admin:admin123@70.153.61.68:5672/dev',
+            'consumeQueue': 'chatbotQueue',
+            'consumeCompensationQueue': 'chatbotCompensationQueue',
+            'produceQueue': 'topicsQueue',
+            'produceCompensationQueue': 'topicsCompensationQueue'
+            
+        })
+        # # sendMessage()
+        # self.create_worker("RestApiWorker", count=1, config={
+        #   'port':8000
+        # })
 
-        self.create_worker("CRAGWorker", count=1, config={
-          # Add any configuration needed for your worker here
-            "database": "chatbot",
-            "connection_string": "mongodb+srv://application:skripsi@socialabs.pjkgs8t.mongodb.net/",
-            "TAVILY_API_KEY" : "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",
-            "AZURE_OPENAI_API_KEY" : "2MQNDFv4maWOJtsHOTV4J1grfhWkmfgIzwwX20OTX3aLs5eml1VTJQQJ99BEACYeBjFXJ3w3AAABACOGf0dD",
-            "AZURE_OPENAI_ENDPOINT" : "https://crag-skripsi.openai.azure.com/",
-            "AZURE_OPENAI_DEPLOYMENT_NAME" : "gpt-4.1",
-            "AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING" : "text-embedding-3-large",
-            "AZURE_OPENAI_API_VERSION" : "2025-01-01-preview",
-        }
-        )
+        # self.create_worker("CRAGWorker", count=1, config={
+        #   # Add any configuration needed for your worker here
+        #     "database": "chatbot",
+        #     "connection_string": "mongodb+srv://application:skripsi@socialabs.pjkgs8t.mongodb.net/",
+        #     "TAVILY_API_KEY" : "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",
+        #     "AZURE_OPENAI_API_KEY" : "2MQNDFv4maWOJtsHOTV4J1grfhWkmfgIzwwX20OTX3aLs5eml1VTJQQJ99BEACYeBjFXJ3w3AAABACOGf0dD",
+        #     "AZURE_OPENAI_ENDPOINT" : "https://crag-skripsi.openai.azure.com/",
+        #     "AZURE_OPENAI_DEPLOYMENT_NAME" : "gpt-4.1",
+        #     "AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING" : "text-embedding-3-large",
+        #     "AZURE_OPENAI_API_VERSION" : "2025-01-01-preview",
+        # }
+        # )
         
         ####
         # until this part
@@ -83,9 +102,7 @@ class Supervisor:
     @staticmethod
     def _worker_runner( worker_name: str, conn: Connection, config: dict):
         try:
-            print(worker_name)
             module = importlib.import_module(f"workers.{worker_name}")
-            print(module)
             module.main(conn, config)
         except ModuleNotFoundError as e:
             print(e)

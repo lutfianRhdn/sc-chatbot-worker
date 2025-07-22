@@ -3,14 +3,13 @@ import os
 
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-
+from datetime import datetime
+import traceback
 import asyncio
 from utils.log import log
 from utils.handleMessage import sendMessage
 import time
 
-from langchain_openai import AzureOpenAIEmbeddings
-from langchain_mongodb import MongoDBAtlasVectorSearch
 
 
 
@@ -26,6 +25,7 @@ class DatabaseInteractionWorker(Worker):
   def __init__(self, conn: Connection, config: dict):
     self.conn=conn
     self._db_name = config.get("database", "mydatabase") 
+    self._dbTweets = config.get("dbTweets", "dataGathering")
     self.connection_string = config.get("connection_string", "mongodb://localhost:27017/") 
     self.AZURE_OPENAI_API_KEY = config.get("AZURE_OPENAI_API_KEY")
     self.AZURE_OPENAI_ENDPOINT = config.get("AZURE_OPENAI_ENDPOINT")
@@ -36,6 +36,7 @@ class DatabaseInteractionWorker(Worker):
     self._instanceId = "DatabaseInteractionWorker"
     self._client = MongoClient(self.connection_string)
     self._db= self._client[self._db_name]
+    self._dbTweets = self._client[self._dbTweets]
     if not self._client:
       log("Failed to connect to MongoDB", "error")
     log(f"Connected to MongoDB at {self.connection_string}", "success")
@@ -66,7 +67,6 @@ class DatabaseInteractionWorker(Worker):
               instance_method = getattr(self,method)
               print(f"Calling method: {method} with param: {param} and data: {message.get('data', {})}")
               result = instance_method(id=param, data=message.get("data", {}))
-              print(f"Received message: {result}")
               sendMessage(
                   conn=self.conn, 
                   status="completed",
@@ -84,6 +84,68 @@ class DatabaseInteractionWorker(Worker):
   #########################################
   # Methods for Database Interaction
   #########################################
+  
+  def getTweets(self, id,data):
+    if not self._isBusy:
+      try:
+        self._isBusy = True
+      
+        start_date = data.get("start_date", "")
+        end_date = data.get("end_date", "")
+        keyword = data.get("keyword", "")
+
+        collection = self._dbTweets['tweets']
+        # Query
+        print(keyword)
+        print(keyword.replace(' ','|'),"keyword")
+        match_stage = {
+              '$match': {
+                  'full_text': {'$regex': keyword.replace(' ','|'), '$options': 'i'}
+              }
+          }
+          
+        pipeline = [match_stage]
+
+          # Add date filtering if both start_date and end_date are provided
+        if start_date and end_date:
+          start_datetime = datetime.strptime(f"{start_date} 00:00:00 +0000", "%Y-%m-%d %H:%M:%S %z")
+          end_datetime = datetime.strptime(f"{end_date} 23:59:59 +0000", "%Y-%m-%d %H:%M:%S %z")
+          print(f"Filtering tweets from {start_datetime} to {end_datetime}")
+          
+          add_fields_stage = {
+              '$addFields': {
+                  'parsed_date': {'$toDate': '$created_at'}
+              }
+          }
+          match_date_stage = {
+              '$match': {
+                  'parsed_date': {'$gte': start_datetime, '$lte': end_datetime}
+              }
+          }
+
+          pipeline.extend([add_fields_stage, match_date_stage])
+          
+          # Project stage to include only specific fields
+        project_stage = {
+              '$project': {
+                  '_id' : 1,
+                  'full_text': 1,
+                  'username': 1,
+                  'in_reply_to_screen_name': 1,
+                  'tweet_url': 1
+              }
+          }
+        pipeline.append(project_stage)
+          
+          # Execute the aggregation pipeline
+        cursor = collection.aggregate(pipeline)
+          # return list(cursor)
+
+        self._isBusy = False
+        return {"data": list(cursor), "destination": [f"VectorWorker/createVector/{id}"]}
+      except Exception as e:
+        traceback.print_exc()
+        log(f"Error in getTweets: {e}", "error")
   
   def getData(self,id):
     if not self._isBusy:
