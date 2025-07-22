@@ -11,7 +11,8 @@
         "examples": [
             {
                 "input_queries": {
-                    "sentence": "I met a tall man who loved to eat cheese, now I believe all tall people like cheese.",
+                    "premis": ["A tall man loved to eat cheese."],
+                    "kesimpulan": "All tall people like cheese.",
                     "terms_premis": [
                         { "term": "x", "jenis": "variabel", "keterangan": "Representasi orang yang tidak spesifik menggantikan man)" },
                         { "term": "cheese", "jenis": "konstanta", "keterangan": "Representasi objek spesifik yaitu makanan yang disukai oleh orang tinggi" }
@@ -32,7 +33,8 @@
             },
             {
                 "input_queries": {
-                    "sentence": "Two dogs are fighting in a field. Consequently, the two dogs are outside.",
+                    "premis": ["Two dogs are fighting in a field.","Field is outside."],
+                    "kesimpulan": "The two dogs are outside.",
                     "terms_premis": [
                         { "term": "x", "jenis": "variabel", "keterangan": "untuk merepresentasikan anjing pertama atau dog" },
                         { "term": "y", "jenis": "variabel", "keterangan": "untuk merepresentasikan anjing kedua atau dog" },
@@ -56,7 +58,8 @@
             },
             {
                 "input_queries": {
-                    "sentence": "A woman sits alone on a park bench in the sun. Hence, a woman is in a park.",
+                    "premis": ["A woman sits alone on a park bench in the sun.","park bench is in a park."],
+                    "kesimpulan": "A woman is in a park.",
                     "terms_premis": [
                         { "term": "x", "jenis": "variabel", "keterangan": "untuk merepresentasikan woman/wanita" },
                         { "term": "y", "jenis": "variabel", "keterangan": "untuk merepresentasikan park bench/bangku taman" },
@@ -83,7 +86,8 @@
             },
             {
                 "input_queries": {
-                    "sentence": "A woman is standing at a podium. Thus, a person is at a podium.",
+                    "premis": ["A woman is standing at a podium.","Woman is person."],
+                    "kesimpulan": "A person is at a podium",
                     "terms_premis": [
                         { "term": "x", "jenis": "variabel", "keterangan": "untuk merepresentasikan woman/wanita" },
                         { "term": "y", "jenis": "variabel", "keterangan": "untuk merepresentasikan podium" }
@@ -105,7 +109,6 @@
             {
                 "input_queries": {
                     "premis_eksplisit": ["Lebih dari 60% pasal dalam UU TNI tidak lagi sesuai dengan tantangan zaman digital dan geopolitik modern.","Laporan Komisi Transparansi Militer ASEAN (KTMA) menyebutkan bahwa UU TNI saat ini berisiko melemahkan posisi Indonesia dalam kerja sama militer regional."],
-                    "premis_implisit": [],
                     "kesimpulan": "Keseluruhan UU TNI sudah usang dan perlu direvisi total.",
                     "terms_premis": [
                         { "term": "x", "jenis": "variabel", "keterangan": "untuk merepresentasikan pasal-pasal dalam UU TNI" }, 
@@ -134,7 +137,8 @@
             }
         ],
         "input_queries": {
-            "sentence": "",
+            "premis": "",
+            "kesimpulan": "",
             "terms_premis": [],
             "terms_kesimpulan": [],
             "atomic_formula": []

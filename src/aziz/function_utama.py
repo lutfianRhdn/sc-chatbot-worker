@@ -32,7 +32,8 @@ def function_transformasi_respons_chatbot_ke_fol(respons):
             term_premis = data['terms_premis']
             term_kesimpulan = data['terms_kesimpulan']
             print(f"Input Queries: {str(input_queries)}")
-            prompt['context']['input_queries']['sentence'] = respons
+            prompt['context']['input_queries']['premis'] = premis
+            prompt['context']['input_queries']['kesimpulan'] = kesimpulan
             prompt['context']['input_queries']['term_premis'] = term_premis
             prompt['context']['input_queries']['term_kesimpulan'] = term_kesimpulan
             prompt = json.dumps(prompt, indent=4)
@@ -111,10 +112,16 @@ def function_klasifikasi_logical_fallacies(respons, counter_example):
     prompt = json.dumps(prompt, indent=4)
     logical_fallacy = llm(prompt)
 
-    logical_fallacy = {
-        'jenis': fix_json_if_incomplete(logical_fallacy)['logical_fallacy']['jenis'],
-        'kalimat_teridentifikasi_logical_fallacy': fix_json_if_incomplete(logical_fallacy)['logical_fallacy']['kalimat_teridentifikasi_logical_fallacy']
-    }
+    try:
+        logical_fallacy = {
+            'jenis': fix_json_if_incomplete(logical_fallacy)['logical_fallacy']['jenis'],
+            'kalimat_teridentifikasi_logical_fallacy': fix_json_if_incomplete(logical_fallacy)['logical_fallacy']['kalimat_teridentifikasi_logical_fallacy']
+        }
+    except Exception as e:
+        logical_fallacy = {
+            'jenis': fix_json_if_incomplete(logical_fallacy)['jenis'],
+            'kalimat_teridentifikasi_logical_fallacy': fix_json_if_incomplete(logical_fallacy)['kalimat_teridentifikasi_logical_fallacy']
+        }
     return logical_fallacy
 
 def function_perbaikan_respons_chatbot(respons_chatbot, counter_example, logical_fallacy):

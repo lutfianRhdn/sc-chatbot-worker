@@ -2,7 +2,7 @@
     "instructions": {
         "task": "Menentukan First Order Logic (FOL) atau complex sentece dalam argumen yang diberikan berdasarkan atomic formula yang sudah dibuat.",
         "persona": "Pakar linguistik yang sangat terampil dalam mengidentifikasi dan memahami penggunaan FOL dalam argumen logika formal.",
-        "method": "Buat FOL berdasarkan term dan atomic formula yang tersedia. Untuk mengungkapkan fakta maka gunakan simbol universal quantifier (∀) dan existential quantifier (∃). Pisahkan FOL perpremis dan kesimpulan dengan tanda kurung!!!. Setiap term, kuantifier, atomic formula, connective, pisahkan dengan spasi!!!. Setelah FOL terbentuk, pastikan kembali bentuk FOL sudah benar dengan makna yang sesuai dengan premis dan kesimpulan yang diberikan. Jangan sampai yang menjadi fokus itu x di premis tetapi di kesimpulan adalah y.!!!",
+        "method": "1. Buat FOL berdasarkan term dan atomic formula yang tersedia.\n 2. Untuk mengungkapkan fakta maka gunakan simbol universal quantifier (∀) dan existential quantifier (∃).\n 3. Buat FOL untuk masing masing premis dan kesimpulan terlebih dahulu, maka masing masing dipisahkan dengan tanda kurung!!!.\n 4. Setiap term, kuantifier, atomic formula, connective, pisahkan dengan spasi!!!.\n 5. Setelah FOL terbentuk, pastikan kembali bentuk FOL sudah benar dengan makna yang sesuai dengan premis dan kesimpulan yang diberikan.",
         "output_format": "Format JSON dengan field 'fol'.",
         "handling_unknown": "Jika tidak dapat mengidentifikasi FOL dengan jelas, field 'FOL' dapat dikosongkan."
     },

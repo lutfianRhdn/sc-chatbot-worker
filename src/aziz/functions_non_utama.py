@@ -53,7 +53,7 @@ def get_counter_example(fol_keseluruhan):
             f.write(script)
 
         # Menjalankan CVC5 solver dan menangkap output
-        proc = subprocess.run([r"D:\Kuliah\SKRIPSI\Uji Coba LLM LF\NL2FOL\NL2FOL-ziz\cvc5\bin\cvc5", "--lang", "smt2", "logical_form.smt2"], capture_output=True, text=True, check=True)
+        proc = subprocess.run([r"src\cvc5\bin\cvc5", "--lang", "smt2", "logical_form.smt2"], capture_output=True, text=True, check=True)
         proc_result = proc.stdout
 
         # Menyimpan hasil output solver ke file
@@ -70,7 +70,7 @@ def load_prompt_template(filename):
     """Load prompt template from JSON file"""
     print(f"Loading prompt template from {filename}")
     try:
-        with open(f'D:/Kuliah/SKRIPSI/Sidang/socialabs-chatbot/src/aziz/prompts/{filename}', 'r', encoding='utf-8') as f:
+        with open(f'src/aziz/prompts/{filename}', 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
         return {"template": "", "variables": []}
