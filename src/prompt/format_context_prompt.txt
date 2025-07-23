@@ -1,0 +1,11 @@
+Buatkan input yang saya berikan menjadi format list context seperti ini tanpa mengubah isi inputnya.
+
+output format (tanpa ada kalimat di akhir seperti "Semoga dapat membantu"): 
+1. Prabowo menjadi sorotan dalam politik pemilihan umum karena kontroversi yang melekat pada dirinya.
+2. Banyak masyarakat yang tidak sepakat dengan Prabowo dan mengkritik kebijakan-kebijakannya.
+3. Meskipun begitu, ada juga yang mendukung Prabowo dan melihatnya sebagai sosok yang mampu membawa perubahan positif.
+4. Anies Baswedan, yang dianggap sebagai sekutu Prabowo, juga menjadi perbincangan dalam konteks politik saat ini.
+5. Terlepas dari pandangan masyarakat terhadap Prabowo, ia tetap menjadi tokoh yang memiliki pengaruh besar dalam dunia politik Indonesia.
+
+input: 
+{input}

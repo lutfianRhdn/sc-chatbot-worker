@@ -39,6 +39,7 @@ class DatabaseInteractionWorker(Worker):
     self._dbTweets = self._client[self._dbTweets]
     if not self._client:
       log("Failed to connect to MongoDB", "error")
+    self._client.server_info()  # This will raise an exception if the connection fails
     log(f"Connected to MongoDB at {self.connection_string}", "success")
     asyncio.run(self.listen_task())
     self.health_check()
@@ -67,6 +68,7 @@ class DatabaseInteractionWorker(Worker):
               instance_method = getattr(self,method)
               print(f"Calling method: {method} with param: {param} and data: {message.get('data', {})}")
               result = instance_method(id=param, data=message.get("data", {}))
+              print(f"Result from {method} with length {len(result.get('data', []))} and destination {result.get('destination', [])}")
               sendMessage(
                   conn=self.conn, 
                   status="completed",
@@ -136,13 +138,17 @@ class DatabaseInteractionWorker(Worker):
               }
           }
         pipeline.append(project_stage)
-          
           # Execute the aggregation pipeline
         cursor = collection.aggregate(pipeline)
+        
           # return list(cursor)
 
         self._isBusy = False
-        return {"data": list(cursor), "destination": [f"VectorWorker/createVector/{id}"]}
+        # print(list(cursor))
+        return {"data": list(cursor), "destination": [
+          f"VectorWorker/createVector/{id}"
+          f"PromptRecommendationWorker/onTweetComing/{id}"
+          ]}
       except Exception as e:
         traceback.print_exc()
         log(f"Error in getTweets: {e}", "error")
@@ -156,7 +162,6 @@ class DatabaseInteractionWorker(Worker):
       self._isBusy= False
       return {"data":data,"destination":["RestApiWorker/onProcessed"]}
   def createNewHistory(self,id,data):
-    print(data)
     created = self._db['history'].insert_one({
       "process": [],
       "question": data.get("question", ""),
@@ -270,6 +275,17 @@ class DatabaseInteractionWorker(Worker):
       return {"data":[{"_id":id}],"destination":["supervisor"]}
 
 
+
+  def createNewPrompt(self,id,data):
+    try:
+      print(f"Creating new prompt  with data: {data}")
+      created = self._db['prompts'].insert_one(data)
+      print(f"New prompt created with id: {created.inserted_id}")
+      return {"data":[{"_id":created.inserted_id}],"destination":["supervisor"]}
+    except Exception as e:
+      traceback.print_exc()
+      log(f"Error in createNewPrompt: {e}", "error")
+      return {"data": [], "destination": ["supervisor"]}
 ############### Helper function to convert ObjectId to string in a list of documents
   
   

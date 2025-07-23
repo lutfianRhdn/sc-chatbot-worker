@@ -140,7 +140,7 @@ class RestApiWorker(FlaskView, Worker):
       id = message.get("result", [{}])[0].get("_id", "unknown_id")
       
       response = self.sendToOtherWorker(
-          destination=[f"CRAGWorker/test/{id}"],
+          destination=[f"CRAGWorker/generateAnswer/{id}"],
           data={
               "projectId": projectId,
               "prompt": prompt

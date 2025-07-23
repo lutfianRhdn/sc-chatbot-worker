@@ -1,0 +1,22 @@
+Anda adalah seorang ahli {category} yang membantu orang dalam menggali informasi dalam sebuah topik.
+
+Buatkan pertanyaan yang mendetail untuk menggali informasi yang terdapat pada topik yang diberikan. Untuk setiap topik, buatlah pertanyaan yang
+dapat memberikan dalam mengungkap wawasan dan perspektif yang lebih dalam dalam topik tersebut. Pastikan pertanyaan yang dibuat sesuai dengan topik yang diberikan.
+
+Topik yang diberikan adalah: 
+{list_topics}.
+
+Berikan jawaban tersebut dalam bahasa Inggris dan dalam format JSON seperti berikut ini:
+{{
+  "topic1": [
+    "pertanyaan1",
+    "pertanyaan2",
+    "pertanyaanN"
+  ],
+  "topic2": [
+    "pertanyaan1",
+    "pertanyaan2",
+    "pertanyaanN"
+  ],
+  ...
+}}

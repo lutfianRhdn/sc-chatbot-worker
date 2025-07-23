@@ -10,7 +10,7 @@ from multiprocessing.connection import Connection
 from utils.log import log
 from utils.handleMessage import sendMessage,convertMessage
 
-
+from config.workerConfig import DatabaseInteractionWorkerConfig, VectorWorkerConfig, PromptRecommendationWorkerConfig, RabbitMQWorkerConfig, RestApiWorkerConfig, CRAGWorkerConfig
 #########
 # dont edit this class except worker conf
 #########
@@ -25,47 +25,12 @@ class Supervisor:
         # just edit this part to add your workers
         ####
         
-        self.create_worker("DatabaseInteractionWorker", count=1, config={
-          'connection_string': 'mongodb+srv://application:skripsi@socialabs.pjkgs8t.mongodb.net/',
-          'database': 'chatbot',
-          "dbTweets": "data_gathering",
-        })
-        self.create_worker("VectorWorker", count=1, config={
-        'connection_string': 'mongodb+srv://application:skripsi@socialabs.pjkgs8t.mongodb.net/',
-        'database': 'chatbot',
-        "AZURE_OPENAI_ENDPOINT": "https://crag-skripsi.openai.azure.com/",
-        "AZURE_OPENAI_API_KEY" : "2MQNDFv4maWOJtsHOTV4J1grfhWkmfgIzwwX20OTX3aLs5eml1VTJQQJ99BEACYeBjFXJ3w3AAABACOGf0dD",
-        
-        "AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING": "text-embedding-3-large",
-        "AZURE_OPENAI_API_VERSION": "2025-01-01-preview",
-        "MONGODB_COLLECTION": "vectorstores",
-        "ATLAS_VECTOR_SEARCH_INDEX_NAME": "index-vectorstores",
-        })
-        self.create_worker("RabbitMQWorker", count=1, config={
-            'connection_string': 'amqp://admin:admin123@70.153.61.68:5672/dev',
-            'consumeQueue': 'chatbotQueue',
-            'consumeCompensationQueue': 'chatbotCompensationQueue',
-            'produceQueue': 'topicsQueue',
-            'produceCompensationQueue': 'topicsCompensationQueue'
-            
-        })
-        # # sendMessage()
-        # self.create_worker("RestApiWorker", count=1, config={
-        #   'port':8000
-        # })
-
-        # self.create_worker("CRAGWorker", count=1, config={
-        #   # Add any configuration needed for your worker here
-        #     "database": "chatbot",
-        #     "connection_string": "mongodb+srv://application:skripsi@socialabs.pjkgs8t.mongodb.net/",
-        #     "TAVILY_API_KEY" : "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",
-        #     "AZURE_OPENAI_API_KEY" : "2MQNDFv4maWOJtsHOTV4J1grfhWkmfgIzwwX20OTX3aLs5eml1VTJQQJ99BEACYeBjFXJ3w3AAABACOGf0dD",
-        #     "AZURE_OPENAI_ENDPOINT" : "https://crag-skripsi.openai.azure.com/",
-        #     "AZURE_OPENAI_DEPLOYMENT_NAME" : "gpt-4.1",
-        #     "AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING" : "text-embedding-3-large",
-        #     "AZURE_OPENAI_API_VERSION" : "2025-01-01-preview",
-        # }
-        # )
+        self.create_worker("DatabaseInteractionWorker", count=1, config=DatabaseInteractionWorkerConfig)
+        self.create_worker("VectorWorker", count=1, config=VectorWorkerConfig)
+        self.create_worker("PromptRecommendationWorker", count=1, config=PromptRecommendationWorkerConfig)
+        self.create_worker("RabbitMQWorker", count=1, config=RabbitMQWorkerConfig)
+        self.create_worker("RestApiWorker", count=1, config=RestApiWorkerConfig)
+        self.create_worker("CRAGWorker", count=1, config=CRAGWorkerConfig)
         
         ####
         # until this part
@@ -82,7 +47,7 @@ class Supervisor:
             log("Worker count must be greater than zero", "error")
             raise ValueError("Worker count must be greater than zero")
         config = config or {}
-        log(f"Creating {count} worker(s) of type {worker}", "info")
+        # log(f"Creating {count} worker(s) of type {worker}", "info")
 
         for _ in range(count):
             parent_conn, child_conn = multiprocessing.Pipe()
@@ -167,6 +132,7 @@ class Supervisor:
 
     def _send_to_worker(self, destination: str, message: dict):
         worker_name = destination.split('/')[0].split('.')[0]
+        method= destination.split('/')[1] if '/' in destination else None
         msg_id = message.get('messageId')
         status = message.get('status')
         reason = message.get('reason')
@@ -190,8 +156,9 @@ class Supervisor:
 
         target = available[0]
         try:
+            print("Sending message to worker:", worker_name, "PID:", target['process'].pid, "Method:", method, "Message ID:", msg_id, "Status:", status, "Reason:", reason, "Size data:", len(message.get('data', {})))
             target['conn'].send(message)
-            log(f"Sent message {msg_id} to {worker_name} PID: {target['process'].pid}", "success")
+            log(f"Sent message {msg_id} to {worker_name} with {method} PID: {target['process'].pid}", "success")
         except Exception as e:
             log(f"Failed to send message to worker {worker_name}: {e}", "error")
 
@@ -233,6 +200,7 @@ class Supervisor:
 
 
 if __name__ == '__main__':
+    
     # Add this for Windows multiprocessing support
     multiprocessing.set_start_method('spawn', force=True)
     

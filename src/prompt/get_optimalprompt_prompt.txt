@@ -1,0 +1,35 @@
+Tugas kamu adalah untuk melakkukan transformasi pertanyaan menjadi sebuah bentuk prompt yang optimal. Dimana prompt tersebut memiliki instruksi, context, input data, dan output indicator.
+
+
+Topik yang diberikan:   
+{context}
+------------------------------------------------
+Pertanyaan: 
+{list_pertanyaan}
+
+Contoh Transformasi:
+- Pertanyaan: "Apa yang membuat Prabowo   menjadi sorotan publik dalam pemilihan umum?"
+- Optimal   Prompt: "Jelaskan apa yang menjadi faktor utama yang membuat Prabowo menjadi sorotan publik dalam pemilihan umum. Berikan   analisis terperinci mengenai pembahasan tersebut.
+Topik: Prabowo Subianto menjadi sorotan publik dalam pemilu dan banyak diperbincangkan oleh masyarakat
+Berikan jawaban yang detail: "
+
+Format Keluaran:
+Keluaran harus berupa objek JSON di mana setiap pertanyaan dipasangkan dengan pertanyaan optimal yang sesuai. Untuk setiap topik, cantumkan pertanyaan asli dan pertanyaan optimal yang telah diubah. Keluaran harus dalam bahasa Inggris. Jangan ubah bahasa key dari JSON keluaran.
+
+Format the outputs in JSON. Example:
+{{
+    "topik1":{{[
+        "pertanyaan1":{{[
+            "pertanyaan": "Apa yang membuat Prabowo menjadi sorotan publik dalam   pemilihan umum?",
+            "optimal prompt": "Jelaskan apa yang menjadi faktor utama yang membuat Prabowo menjadi sorotan publik dalam pemilihan umum. Berikan analisis terperinci mengenai pembahasan tersebut.
+            Topik: Prabowo Subianto menjadi sorotan publik dalam pemilu dan banyak diperbincangkan oleh masyarakt
+            Berikan jawaban yang detail: "
+        ]}},
+    ...
+    ]
+    ...
+}},
+ 
+
+ 
+}}

@@ -19,7 +19,11 @@ from pymongo import MongoClient
 
 import traceback
 import nltk
-nltk.download('punkt')
+# check if nltk data is downloaded, if not download it
+if not os.path.exists(os.path.join(nltk.data.find('tokenizers'), 'punkt')):
+    print("Downloading NLTK punkt tokenizer...")
+    nltk.download('punkt', quiet=True)
+# nltk.download('punkt')
 
 from .Worker import Worker
 
@@ -44,18 +48,18 @@ class VectorWorker(Worker):
         
         # print(config)
         self.embeddings = AzureOpenAIEmbeddings(
-            azure_endpoint=config['AZURE_OPENAI_ENDPOINT'],
-            azure_deployment=config['AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING'],
-            openai_api_version=config['AZURE_OPENAI_API_VERSION'],
-            azure_ad_token=config['AZURE_OPENAI_API_KEY']
+            azure_endpoint=config['azure_openai_endpoint'],
+            azure_deployment=config['azure_openai_deployment_name_embedding'],
+            openai_api_version=config['azure_openai_api_version'],
+            azure_ad_token=config['azure_openai_key'],
         )
         client = MongoClient(config['connection_string'])
-        MONGODB_COLLECTION = client[config['database']][config['MONGODB_COLLECTION']]
+        MONGODB_COLLECTION = client[config['database']][config['mongodb_collection']]
 
         self.vector_mongo = MongoDBAtlasVectorSearch(
                 collection=MONGODB_COLLECTION,
                 embedding=self.embeddings,
-                index_name=config['ATLAS_VECTOR_SEARCH_INDEX_NAME'],
+                index_name=config['atlas_vector_search_index_name'],
                 relevance_score_fn="cosine",
             )
         self.vector_mongo.create_vector_search_index(dimensions=3072)
@@ -259,7 +263,7 @@ class VectorWorker(Worker):
             traceback.print_exc()
             log(f"Error in createVector: {e}", "error")
             # self.sendToOtherWorker(
-            #     messageId=message.get("messageId"),
+            #     messageId=message.get("messageId"),``
             #     destination=[f"DatabaseInteractionWorker/insertVectorError/{projectId}"],
             #     data={"error": str(e)}
             # )

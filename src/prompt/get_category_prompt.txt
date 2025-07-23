@@ -1,0 +1,7 @@
+Tugas Anda adalah mengkategorikan topik yang diberikan ke dalam salah satu kategori berikut: ekonomi, politik, pendidikan, atau masalah sosial. 
+Jawabannya HANYA perlu salah satu dari kategori berikut. Contoh: "Ekonomi"
+
+Topik yang disediakan untuk dikategorikan adalah:
+{list_topics}.
+
+Harap berikan 1 kategori keseluruhan topik yang diberikan dari pilihan yang disebutkan.

@@ -24,14 +24,12 @@ from langgraph.graph import END, StateGraph, START
 from pprint import pprint
 from langchain_mongodb import MongoDBAtlasVectorSearch
 from pymongo import MongoClient
-import getpass
 import os
 from uuid import uuid4
 from nltk.tokenize import word_tokenize
-
+import traceback
 from multiprocessing.connection import Connection
 import threading
-import uuid
 import time
 from  utils.log import log 
 from utils.handleMessage import sendMessage, convertMessage
@@ -61,115 +59,135 @@ class CRAGWorker(Worker):
         self.requests: dict = {}
         
     def run(self, conn: Connection, config: dict):
-        # assign here
-        CRAGWorker.conn = conn
+        try:
+            # assign here
+            CRAGWorker.conn = conn
+            
+# CRAGWorkerConfig={
+#     "database": database.database_name,
+#     "connection_string": database.connection_string,
+#     "index_name": database.mongo_vector_search_index_name,
+#     "collection_name": database.mongodb_collection_vector,
+#     "TAVILY_API_KEY": tavily_api_key,
+#     "azure_openai_api_key": azure.api_key,
+#     "azure_openai_endpoint": azure.endpoint,
+#     "azure_openai_deployment_name": azure.deployment_name.api,
+#     "azure_openai_deployment_name_embedding": azure.deployment_name.embedding,
+#     "azure_openai_api_version": azure.api_version.api,
+#     "azure_openai_embedding_api_version": azure.api_version.embedding,
+# }
 
-        #### add your worker initialization code here
-        self.conn=conn
-        self._db_name = config.get("database", "mydatabase") 
-        self.connection_string = config.get("connection_string", "mongodb://localhost:27017/") 
-        self.AZURE_OPENAI_API_KEY = config.get("AZURE_OPENAI_API_KEY")
-        self.AZURE_OPENAI_ENDPOINT = config.get("AZURE_OPENAI_ENDPOINT")
-        self.AZURE_OPENAI_DEPLOYMENT_NAME = config.get("AZURE_OPENAI_DEPLOYMENT_NAME")
-        self.AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING = config.get("AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING")
-        self.AZURE_OPENAI_API_VERSION = config.get("AZURE_OPENAI_API_VERSION")
-        self.TAVILY_API_KEY = config.get("TAVILY_API_KEY")
-        os.environ["AZURE_OPENAI_API_KEY"] = self.AZURE_OPENAI_API_KEY
-        os.environ["TAVILY_API_KEY"] = self.TAVILY_API_KEY
+            #### add your worker initialization code here
+            self.conn=conn
+            self._db_name = config.get("database", "mydatabase") 
+            self.search_index_name = config.get("index_name",  "index-vectorstores")
+            self.collection_name = config.get("collection_name", "vectorstores")
+            
+            self.connection_string = config.get("connection_string", "mongodb://localhost:27017/") 
+            os.environ["AZURE_OPENAI_API_KEY"] = config['azure_openai_api_key']
+            os.environ["TAVILY_API_KEY"] = config['tavily_api_key']
 
-        self.connect_retrieval()
-        self.llm = AzureChatOpenAI(
-            azure_endpoint= self.AZURE_OPENAI_ENDPOINT,
-            azure_deployment=self.AZURE_OPENAI_DEPLOYMENT_NAME,
-            openai_api_version=self.AZURE_OPENAI_API_VERSION,
-            temperature=0,
-        )
-        self.web_search_tool = TavilySearchResults(max_results=5)
-        self.rag_chain = prompt | self.llm | StrOutputParser()
-        self.keyword_extractor = re_write_prompt | self.llm | StrOutputParser()
-        self.leader_chain = leader_prompt | self.llm | StrOutputParser()
-        self.extract_chain = prompt_extrac | self.llm | StrOutputParser()
-        self.structured_llm_grader = self.llm.with_structured_output(GradeDocuments)
-        self.retrieval_grader = grade_prompt | self.structured_llm_grader
-        self.skeptic_chain = skeptic_prompt | self.llm | StrOutputParser()
-        self.trust_chain = trust_prompt | self.llm | StrOutputParser()
-        base_dir = os.path.dirname(os.path.abspath(__file__))  # path ke file ini
-        path_slang = os.path.join(base_dir, "../../kamus/slang.xlsx")
-        print(path_slang)
-        if not os.path.exists(path_slang):
-            print("slang not found, using default path")
-        df_slang = pd.read_excel(path_slang)
-        self.slang_dict = dict(zip(df_slang['slang'], df_slang['formal']))
-        workflow = StateGraph(GraphState)
+            self.llm = AzureChatOpenAI(
+                azure_endpoint= config['azure_openai_endpoint'],
+                azure_deployment=config['azure_openai_deployment_name'],
+                openai_api_version=config['azure_openai_api_version'],
+                temperature=0,
+            )
+            self.embeddings = AzureOpenAIEmbeddings(
+                azure_endpoint= config['azure_openai_endpoint'],
+                azure_deployment=config['azure_openai_deployment_name_embedding'],
+                openai_api_version= config['azure_openai_embedding_api_version'],
+            )
+            self.connect_retrieval()
+            
+            self.web_search_tool = TavilySearchResults(max_results=5)
+            self.rag_chain = prompt | self.llm | StrOutputParser()
+            self.keyword_extractor = re_write_prompt | self.llm | StrOutputParser()
+            self.leader_chain = leader_prompt | self.llm | StrOutputParser()
+            self.extract_chain = prompt_extrac | self.llm | StrOutputParser()
+            self.structured_llm_grader = self.llm.with_structured_output(GradeDocuments)
+            self.retrieval_grader = grade_prompt | self.structured_llm_grader
+            self.skeptic_chain = skeptic_prompt | self.llm | StrOutputParser()
+            self.trust_chain = trust_prompt | self.llm | StrOutputParser()
+            base_dir = os.path.dirname(os.path.abspath(__file__))  # path ke file ini
+            path_slang = os.path.join(base_dir, "../../kamus/slang.xlsx")
+            if not os.path.exists(path_slang):
+                print("slang not found, using default path")
+            df_slang = pd.read_excel(path_slang)
+            self.slang_dict = dict(zip(df_slang['slang'], df_slang['formal']))
+            workflow = StateGraph(GraphState)
 
-        # Define the nodes
-        workflow.add_node("retrieve", self.retrieve)  # retrieve
-        workflow.add_node("grade_documents", self.grade_documents)  # grade documents
-        workflow.add_node("generate", self.generate)  # generate
-        workflow.add_node("transform_query", self.transform_query)  # transform_query
-        workflow.add_node("web_search_node", self.web_search)  # web search
-        workflow.add_node("knowledge_refinement", self.knowledge_refinement)  # knowledge refinement
+            # Define the nodes
+            workflow.add_node("retrieve", self.retrieve)  # retrieve
+            workflow.add_node("grade_documents", self.grade_documents)  # grade documents
+            workflow.add_node("generate", self.generate)  # generate
+            workflow.add_node("transform_query", self.transform_query)  # transform_query
+            workflow.add_node("web_search_node", self.web_search)  # web search
+            workflow.add_node("knowledge_refinement", self.knowledge_refinement)  # knowledge refinement
 
-        # Build graph
-        workflow.add_edge(START, "retrieve")
-        workflow.add_edge("retrieve", "grade_documents")
-        workflow.add_conditional_edges(
-            "grade_documents",
-            self.decide_to_generate,
-            {
-                "transform_query": "transform_query",
-                "generate": "generate",
-            },
-        )
-        workflow.add_edge("transform_query", "web_search_node")
-        workflow.add_edge("web_search_node", "knowledge_refinement")
-        workflow.add_edge("knowledge_refinement", "generate")
-        workflow.add_edge("generate", END)
-        # Compile
-        self.app = workflow.compile()
+            # Build graph
+            workflow.add_edge(START, "retrieve")
+            workflow.add_edge("retrieve", "grade_documents")
+            workflow.add_conditional_edges(
+                "grade_documents",
+                self.decide_to_generate,
+                {
+                    "transform_query": "transform_query",
+                    "generate": "generate",
+                },
+            )
+            workflow.add_edge("transform_query", "web_search_node")
+            workflow.add_edge("web_search_node", "knowledge_refinement")
+            workflow.add_edge("knowledge_refinement", "generate")
+            workflow.add_edge("generate", END)
+            # Compile
+            self.app = workflow.compile()
 
 
-        # Define the workflow for CRAG evaluation
-        workflow_evaluasi = StateGraph(GraphState)
+            # Define the workflow for CRAG evaluation
+            workflow_evaluasi = StateGraph(GraphState)
 
-        workflow_evaluasi.add_node("s0", self.initial_answer_node)
-        workflow_evaluasi.add_node("s1", self.get_evidence_node)
-        workflow_evaluasi.add_node("s2", self.skeptic_node)
-        workflow_evaluasi.add_node("s3", self.trust_node)
-        workflow_evaluasi.add_node("increment_round", self.increment_round_node)
-        workflow_evaluasi.add_node("s4", self.leader_node)
+            workflow_evaluasi.add_node("s0", self.initial_answer_node)
+            workflow_evaluasi.add_node("s1", self.get_evidence_node)
+            workflow_evaluasi.add_node("s2", self.skeptic_node)
+            workflow_evaluasi.add_node("s3", self.trust_node)
+            workflow_evaluasi.add_node("increment_round", self.increment_round_node)
+            workflow_evaluasi.add_node("s4", self.leader_node)
 
-        # Add edges
-        workflow_evaluasi.add_edge(START, "s0")
-        workflow_evaluasi.add_edge("s0", "s1")
-        workflow_evaluasi.add_edge("s1", "s2")
-        workflow_evaluasi.add_edge("s2", "s3")
+            # Add edges
+            workflow_evaluasi.add_edge(START, "s0")
+            workflow_evaluasi.add_edge("s0", "s1")
+            workflow_evaluasi.add_edge("s1", "s2")
+            workflow_evaluasi.add_edge("s2", "s3")
 
-        # After trust node, check if we should continue or end based on new logic
-        workflow_evaluasi.add_conditional_edges(
-            "s3",
-            self.should_continue_debate,
-            {
-                "continue_debate": "increment_round",  # Increment round and go back to skeptic
-                "end_debate": "s4"                     # Go to leader node to end
-            }
-        )
+            # After trust node, check if we should continue or end based on new logic
+            workflow_evaluasi.add_conditional_edges(
+                "s3",
+                self.should_continue_debate,
+                {
+                    "continue_debate": "increment_round",  # Increment round and go back to skeptic
+                    "end_debate": "s4"                     # Go to leader node to end
+                }
+            )
 
-        # After incrementing round, go back to skeptic for next round
-        workflow_evaluasi.add_edge("increment_round", "s2")
-        workflow_evaluasi.add_edge("s4", END)
+            # After incrementing round, go back to skeptic for next round
+            workflow_evaluasi.add_edge("increment_round", "s2")
+            workflow_evaluasi.add_edge("s4", END)
 
-        self.app_evaluasi = workflow_evaluasi.compile()
-        print("Selesai")
+            self.app_evaluasi = workflow_evaluasi.compile()
+            print('CRAGWorker initialized successfully.')
 
-        #### until this part
-        # start background threads *before* blocking server
-        threading.Thread(target=self.listen_task, daemon=True).start()
-        threading.Thread(target=self.health_check, daemon=True).start()
+            #### until this part
+            # start background threads *before* blocking server
+            threading.Thread(target=self.listen_task, daemon=True).start()
+            threading.Thread(target=self.health_check, daemon=True).start()
 
-        # asyncio.run(self.listen_task())
-        self.health_check()
-
+            # asyncio.run(self.listen_task())
+            self.health_check()
+        except Exception as e:
+            traceback.print_exc()
+            print(e)
+            log(f"Failed to connect to CRAGWorker: {e}", "error")
 
     def health_check(self):
         """Send a heartbeat every 10s."""
@@ -259,32 +277,34 @@ class CRAGWorker(Worker):
 
 
     def connect_retrieval(self):   
-      os.environ["AZURE_OPENAI_API_KEY"] = self.AZURE_OPENAI_API_KEY
-      embeddings = AzureOpenAIEmbeddings(
-      azure_endpoint=self.AZURE_OPENAI_ENDPOINT,
-      azure_deployment=self.AZURE_OPENAI_DEPLOYMENT_NAME_EMBEDDING,
-      openai_api_version=self.AZURE_OPENAI_API_VERSION,
-      )
-      # initialize MongoDB python client
-      client = MongoClient(self.connection_string)
+      try:
+        
+        # initialize MongoDB python client
+        client = MongoClient(self.connection_string)
 
-      DB_NAME = self._db_name
-      COLLECTION_NAME = "vectorstores"
-      ATLAS_VECTOR_SEARCH_INDEX_NAME = "index-vectorstores"
+        DB_NAME = self._db_name
+        COLLECTION_NAME = self.collection_name = "vectorstores"
+        ATLAS_VECTOR_SEARCH_INDEX_NAME = self.search_index_name = "vector_search_index"
 
-      MONGODB_COLLECTION = client[DB_NAME][COLLECTION_NAME]
+        MONGODB_COLLECTION = client[DB_NAME][COLLECTION_NAME]
 
-      vector_mongo = MongoDBAtlasVectorSearch(
-          collection=MONGODB_COLLECTION,
-          embedding=embeddings,
-          index_name=ATLAS_VECTOR_SEARCH_INDEX_NAME,
-          relevance_score_fn="cosine",
-      )
+        vector_mongo = MongoDBAtlasVectorSearch(
+            collection=MONGODB_COLLECTION,
+            embedding=self.embeddings,
+            index_name=ATLAS_VECTOR_SEARCH_INDEX_NAME,
+            relevance_score_fn="cosine",
+        )
 
-      print(f"Connected to MongoDB Atlas Vector Search at {self.connection_string}")
-      # Create vector search index on the collection
-      self.vector_mongo = vector_mongo.create_vector_search_index(dimensions=3072)
-      self.retriever = vector_mongo.as_retriever()
+        print(f"Connected to MongoDB Atlas Vector Search at {self.connection_string}")
+        # Create vector search index on the collection
+        self.vector_mongo = vector_mongo.create_vector_search_index(dimensions=3072)
+        self.retriever = vector_mongo.as_retriever()
+        print("MongoDB Atlas Vector Search initialized successfully.")
+      except Exception as e:
+        traceback.print_exc()
+        print(f"Error connecting to MongoDB Atlas Vector Search: {e}")
+        log(f"Error connecting to MongoDB Atlas Vector Search: {e}", "error")
+        raise e
 
     def retrieve(self, state):
       """
@@ -634,7 +654,7 @@ class CRAGWorker(Worker):
         """
         Create the initial node of the graph.
         """
-        print("=== Initial Answer Node ===")
+        # print("=== Initial Answer Node ===")
         claim = state["claim"]
         # Show the prompt that will be sent
         prompt_vars = {"input": claim}
@@ -658,7 +678,7 @@ class CRAGWorker(Worker):
         """
         Create the evidence node of the graph.
         """
-        print("=== Evidence Node ===")
+        # print("=== Evidence Node ===")
         claim = state["claim"]
         question = state["question"]
         evidence = state["evidence"]
@@ -683,13 +703,13 @@ class CRAGWorker(Worker):
         Create the skeptic node of the graph.
         """
         round_count = state.get("round_count", 1)
-        print(f"=== Skeptic Node - Round {round_count} ===")
+        # print(f"=== Skeptic Node - Round {round_count} ===")
         evidence = state["evidence"]
         claim = state["claim"]
         previous_opinion = state.get("previous_opinion", "")
 
         prompt_vars = {"claim": claim, "evidence": evidence, "previous_opinion": previous_opinion}
-        print("=== Prompt Skeptic Node===")
+        # print("=== Prompt Skeptic Node===")
         # print(skeptic_prompt.format(**prompt_vars))
         text = self.skeptic_chain.invoke(prompt_vars)
         # print(text)
@@ -717,13 +737,13 @@ class CRAGWorker(Worker):
         Create the trust node of the graph.
         """
         round_count = state.get("round_count", 1)
-        print(f"=== Trust Node - Round {round_count} ===")
+        # print(f"=== Trust Node - Round {round_count} ===")
         evidence = state["evidence"]
         claim = state["claim"]
         previous_opinion = state.get("previous_opinion", "")
         
         prompt_vars = {"claim": claim, "evidence": evidence, "previous_opinion": previous_opinion}
-        print("=== Prompt Trust Node===")
+        # print("=== Prompt Trust Node===")
         # print(trust_prompt.format(**prompt_vars))
         
         text = self.trust_chain.invoke(prompt_vars)
@@ -751,7 +771,7 @@ class CRAGWorker(Worker):
         """
         round_count = state.get("round_count", 1)
         new_round_count = round_count + 1
-        print(f"=== Completed Round {round_count}, Moving to Round {new_round_count} ===")
+        # print(f"=== Completed Round {round_count}, Moving to Round {new_round_count} ===")
         
         return {
             "claim": state["claim"], 
@@ -764,13 +784,13 @@ class CRAGWorker(Worker):
         """
         Create the leader node of the graph.
         """
-        print("=== Leader Node - Final Decision ===")
+        # print("=== Leader Node - Final Decision ===")
         evidence = state["evidence"]
         claim = state["claim"]
         previous_opinion = state["previous_opinion"]
         
         prompt_vars = {"claim": claim, "evidence": evidence, "previous_opinion": previous_opinion}
-        print("=== Prompt Leader Node===")
+        # print("=== Prompt Leader Node===")
         # print(leader_prompt.format(**prompt_vars))
 
         text = self.leader_chain.invoke(prompt_vars)
@@ -867,14 +887,14 @@ class CRAGWorker(Worker):
             else:
                 break
         
-        print(f"Found {len(json_objects)} JSON objects")
+        # print(f"Found {len(json_objects)} JSON objects")
         
         # For round 2, we need at least 4 objects (skeptic1, trust1, skeptic2, trust2)
         # For round 3, we need at least 6 objects
         expected_objects = round_count * 2
         
         if len(json_objects) < expected_objects:
-            print(f"Not enough JSON objects yet. Expected: {expected_objects}, Got: {len(json_objects)}")
+            # print(f"Not enough JSON objects yet. Expected: {expected_objects}, Got: {len(json_objects)}")
             return False
         
         # Get the last two JSON objects (current round's skeptic and trust)
@@ -883,17 +903,17 @@ class CRAGWorker(Worker):
         factuality_values = []
         for i, json_obj in enumerate(current_round_objects):
             factuality = self.extract_factuality_from_opinion(json_obj)
-            print(f"JSON object {i+1}: {json_obj[:100]}...")
-            print(f"Extracted factuality: {factuality}")
+            # print(f"JSON object {i+1}: {json_obj[:100]}...")
+            # print(f"Extracted factuality: {factuality}")
             if factuality is not None:
                 factuality_values.append(factuality)
         
         # Check if we have factuality values from both agents and they agree
         if len(factuality_values) == 2 and factuality_values[0] == factuality_values[1]:
-            print(f"Consensus found: both agents agree on factuality = {factuality_values[0]}")
+            # print(f"Consensus found: both agents agree on factuality = {factuality_values[0]}")
             return True
         
-        print("No consensus found")
+        # print("No consensus found")
         return False
     
     def should_continue_debate(self, state):
@@ -906,37 +926,37 @@ class CRAGWorker(Worker):
         round_count = state.get("round_count", 1)
         previous_opinion = state.get("previous_opinion", "")
         
-        print(f"=== Checking debate continuation - Round {round_count} ===")
-        print(f"Previous opinions length: {len(previous_opinion.split(',')) if previous_opinion else 0}")
+        # print(f"=== Checking debate continuation - Round {round_count} ===")
+        # print(f"Previous opinions length: {len(previous_opinion.split(',')) if previous_opinion else 0}")
         
         # Must complete at least 2 rounds
         if round_count < 2:
-            print("Continue: Minimum 2 rounds not reached")
+            # print("Continue: Minimum 2 rounds not reached")
             return "continue_debate"
         
         # Maximum 3 rounds
         if round_count >= 3:
-            print("End: Maximum 3 rounds reached")
+            # print("End: Maximum 3 rounds reached")
             return "end_debate"
         
         # Check for factuality consensus (only after round 2 or higher)
         if round_count >= 2:
             has_consensus = self.check_factuality_consensus(previous_opinion, round_count)
             if has_consensus:
-                print("End: Factuality consensus reached between skeptic and trust")
+                # print("End: Factuality consensus reached between skeptic and trust")
                 return "end_debate"
             else:
-                print("Continue: No factuality consensus yet")
+                # print("Continue: No factuality consensus yet")
                 return "continue_debate"
         
         return "continue_debate"
 
-    def test(self,id, data, mId)->None:
+    def generateAnswer(self,id, data, mId)->None:
         """
-        Example method to test the worker functionality.
+        Example method to generateAnswer the worker functionality.
         Replace this with your actual worker methods.
         """
-        print(data['prompt'])
+        # print(data['prompt'])
         self.id = id
         self.sendToOtherWorker(
             destination=[f"DatabaseInteractionWorker/createNewProgress/{id}"],
@@ -961,7 +981,7 @@ class CRAGWorker(Worker):
 
         # Final generation
         final_response = value["generation"]
-        print(value["generation"])
+        # print(value["generation"])
         # text = self.casefoldingText("Halo, ini adalah contoh teks untuk diolah.")
         # text = self.cleaningText(text)
         # text = self.tokenizingText(text)
@@ -1018,7 +1038,7 @@ class CRAGWorker(Worker):
       #     destination=["supervisor"],
       #     data={"message": "This is a test response."}
       # )
-        log("Test method called", "info")
+        # log("Test method called", "info")
         # return {"status": "success", "data": "This is a test response."}
 
 def main(conn: Connection, config: dict):

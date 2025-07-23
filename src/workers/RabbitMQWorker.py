@@ -124,7 +124,10 @@ class RabbitMQWorker(Worker):
       def callback(ch, method, properties, body):
         print(f"[x] Received message: {body.decode()}")
         self.sendToOtherWorker(
-            destination=['VectorWorker/runCreating/'],
+            destination=[
+                'VectorWorker/runCreating/',
+                'PromptRecommendationWorker/generatePrompt/',
+                ],
             messageId=str(uuid.uuid4()),
             data=convertMessage(body.decode())
         )

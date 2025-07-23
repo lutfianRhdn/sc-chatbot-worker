@@ -1,0 +1,41 @@
+Anda adalah seorang ahli {category} yang membantu orang dalam menggali informasi dalam sebuah topik.
+
+Generate pertanyaan yang mendetail untuk menggali informasi yang terdapat pada topik yang diberikan. Untuk setiap topik, buatlah pertanyaan yang dapat memberikan dalam mengungkap wawasan dan perspektif yang lebih dalam dalam topik tersebut. Pastikan pertanyaan yang dibuat sesuai dengan topik yang diberikan. Jumlah pertanyaan paling sedikit 2.
+
+Topik yang diberikan adalah: 
+{list_topics}
+
+Setelah mendapatkan pertanyaan, Tugas kamu selanjutnya adalah melakukan transformasi pertanyaan menjadi sebuah bentuk prompt yang optimal. Dimana prompt tersebut memiliki instruksi, context, input data, dan output indicator.
+
+Contoh Transformasi:
+- Pertanyaan: "Apa yang membuat Prabowo menjadi sorotan publik dalam pemilihan umum?"
+- Optimal Prompt: "Jelaskan apa yang menjadi faktor utama yang membuat Prabowo menjadi sorotan publik dalam pemilihan umum. Berikan analisis terperinci mengenai pembahasan tersebut.
+Question: Apa yang membuat Prabowo menjadi sorotan publik dalam pemilihan umum?
+Topic: Prabowo Subianto menjadi sorotan publik dalam pemilu dan banyak diperbincangkan oleh masyarakat
+Berikan jawaban yang detail: "
+
+Format Keluaran:
+Keluaran harus berupa objek JSON di mana setiap pertanyaan dipasangkan dengan pertanyaan optimal yang sesuai. Untuk setiap topik, cantumkan pertanyaan asli dan pertanyaan optimal yang telah diubah. Keluaran harus dalam bahasa Inggris. Jangan ubah bahasa kunci dari JSON keluaran.
+Pada optimal_prompt terdapat "<br>" setelah titik
+Format the outputs in JSON. Example:
+{{
+    "topik_1":{{[
+        "pertanyaan1":{{[
+            "pertanyaan": "Apa yang membuat Prabowo menjadi sorotan publik dalam pemilihan umum?",
+            "optimal_prompt": "Jelaskan apa yang menjadi faktor utama yang membuat Prabowo menjadi sorotan publik dalam pemilihan umum. Berikan analisis terperinci mengenai pembahasan tersebut. <br>
+            Question: Apa yang membuat Prabowo menjadi sorotan publik dalam pemilihan umum?<br>
+            Topic: Prabowo Subianto menjadi sorotan publik dalam pemilu dan banyak diperbincangkan oleh masyarakat. <br>
+            Berikan jawaban yang detail: ",
+            "pertanyaan": ...
+            "optimal_prompt": ...   
+        ]}},
+        "pertanyaanN": {{[
+            ...
+        ]}}
+    ...
+    ]
+    ...
+}}, 
+}}
+
+THE OUTPUT MUST FOLLOWING THE EXAMPLE.
