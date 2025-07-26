@@ -52,6 +52,7 @@ class RabbitMQWorker(Worker):
           # Declare queues
           
           self.consumeChannel.queue_declare(queue=self.consumeQueue, durable=True)
+          self.consumeChannel.queue_bind(queue=self.consumeQueue, exchange='topicExchange', routing_key=self.consumeQueue)
           self.consumeChannel.queue_declare(queue=self.consumeCompensationQueue, durable=True)
           self.produceChannel.queue_declare(queue=self.produceQueue, durable=True)
           self.produceChannel.queue_declare(queue=self.produceCompensationQueue, durable=True)
