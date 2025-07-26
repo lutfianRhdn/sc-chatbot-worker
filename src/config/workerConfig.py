@@ -55,3 +55,28 @@ CRAGWorkerConfig={
     "azure_openai_api_version": azure['api_version']['api'],
     "azure_openai_embedding_api_version": azure['api_version']['embedding'],
 }
+
+LogicalFallacyPromptWorkerConfig={
+    "azure_openai_api_key": azure['api_key'],
+    "azure_openai_endpoint": azure['endpoint'],
+    "azure_openai_deployment_name": azure['deployment_name']['api'],
+    "azure_openai_api_version": azure['api_version']['api']
+}
+
+SMTConverterWorkerConfig={
+    "":""
+}
+
+CounterExampleCreatorWorkerConfig={
+    "azure_openai_api_key": azure['api_key'],
+    "azure_openai_endpoint": azure['endpoint'],
+    "azure_openai_deployment_name": azure['deployment_name']['api'],
+    "azure_openai_api_version": azure['api_version']['api']
+}
+
+LogicalFallacyClassificationWorkerConfig={
+    "azure_openai_api_key": azure['api_key'],
+    "azure_openai_endpoint": azure['endpoint'],
+    "azure_openai_deployment_name": azure['deployment_name']['api'],
+    "azure_openai_api_version": azure['api_version']['api']
+}

@@ -1,4 +1,3 @@
-
 import sys
 import os
 import time
@@ -7,10 +6,11 @@ import importlib
 import multiprocessing
 from datetime import datetime
 from multiprocessing.connection import Connection
+import traceback
 from utils.log import log
 from utils.handleMessage import sendMessage,convertMessage
 
-from config.workerConfig import DatabaseInteractionWorkerConfig, VectorWorkerConfig, PromptRecommendationWorkerConfig, RabbitMQWorkerConfig, RestApiWorkerConfig, CRAGWorkerConfig
+from config.workerConfig import CounterExampleCreatorWorkerConfig, DatabaseInteractionWorkerConfig, LogicalFallacyClassificationWorkerConfig, LogicalFallacyPromptWorkerConfig, SMTConverterWorkerConfig, VectorWorkerConfig, PromptRecommendationWorkerConfig, RabbitMQWorkerConfig, RestApiWorkerConfig, CRAGWorkerConfig
 #########
 # dont edit this class except worker conf
 #########
@@ -25,13 +25,17 @@ class Supervisor:
         # just edit this part to add your workers
         ####
         
-        self.create_worker("DatabaseInteractionWorker", count=1, config=DatabaseInteractionWorkerConfig)
-        self.create_worker("VectorWorker", count=1, config=VectorWorkerConfig)
-        self.create_worker("PromptRecommendationWorker", count=1, config=PromptRecommendationWorkerConfig)
-        self.create_worker("RabbitMQWorker", count=1, config=RabbitMQWorkerConfig)
+        # self.create_worker("DatabaseInteractionWorker", count=1, config=DatabaseInteractionWorkerConfig)
+        # self.create_worker("VectorWorker", count=1, config=VectorWorkerConfig)
+        # self.create_worker("PromptRecommendationWorker", count=1, config=PromptRecommendationWorkerConfig)
+        # self.create_worker("RabbitMQWorker", count=1, config=RabbitMQWorkerConfig)
         self.create_worker("RestApiWorker", count=1, config=RestApiWorkerConfig)
-        self.create_worker("CRAGWorker", count=1, config=CRAGWorkerConfig)
-        
+        # self.create_worker("CRAGWorker", count=1, config=CRAGWorkerConfig)
+        self.create_worker("LogicalFallacyPromptWorker", count=1, config=LogicalFallacyPromptWorkerConfig)
+        self.create_worker("SMTConverterWorker", count=1, config=SMTConverterWorkerConfig)
+        self.create_worker("CounterExampleCreatorWorker", count=1, config=CounterExampleCreatorWorkerConfig)
+        self.create_worker("LogicalFallacyClassificationWorker", count=1, config=LogicalFallacyClassificationWorkerConfig)
+
         ####
         # until this part
         ####
@@ -73,6 +77,7 @@ class Supervisor:
             print(e)
             log(f"Worker module not found: workers.{worker_name}", "error")
         except Exception as e:
+            traceback.print_exc()
             log(f"Worker error: {e}", "error")
         finally:
             conn.close()

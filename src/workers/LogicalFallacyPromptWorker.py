@@ -1,0 +1,419 @@
+import ast
+import json
+from multiprocessing.connection import Connection
+import os
+import threading
+import traceback
+import uuid
+import time
+
+import pandas as pd
+from  utils.log import log 
+from utils.handleMessage import sendMessage, convertMessage
+from prompt.prompt_fol_extraction import prompt_fol_template
+from prompt.semantic_intent import prompt_intent_template
+from prompt.thematic_progression import prompt_progression_template
+from prompt.prompt_modification import prompt_modification_template
+from openai import AzureOpenAI
+from .Worker import Worker
+from prompt.semantic_intent_relation import prompt_intent_relationship_template
+
+class LogicalFallacyPromptWorker(Worker):
+    ###############
+    # dont edit this part
+    ###############
+    route_base = "/"
+    conn:Connection
+    requests: dict = {}
+    def __init__(self):
+        # we'll assign these in run()
+        self._port: int = None
+
+        self.requests: dict = {}
+        
+    def run(self, conn: Connection, config: dict):
+        # assign here
+        LogicalFallacyPromptWorker.conn = conn
+
+        #### add your worker initialization code here
+        self.client = AzureOpenAI(
+            api_key= config["azure_openai_api_key"],
+            api_version= config["azure_openai_api_version"],
+            azure_endpoint= config["azure_openai_endpoint"]
+        )
+        self.model_name = config["azure_openai_deployment_name"]
+        
+        
+        
+        
+        
+        #### until this part
+        # start background threads *before* blocking server
+        threading.Thread(target=self.listen_task, daemon=True).start()
+        threading.Thread(target=self.health_check, daemon=True).start()
+
+        # asyncio.run(self.listen_task())
+        self.health_check()
+
+
+    def health_check(self):
+        """Send a heartbeat every 10s."""
+        while True:
+            sendMessage(
+                conn=LogicalFallacyPromptWorker.conn,
+                messageId="heartbeat",
+                status="healthy"
+            )
+            time.sleep(10)
+    def listen_task(self):
+        while True:
+            try:
+                if LogicalFallacyPromptWorker.conn.poll(1):  # Check for messages with 1 second timeout
+                    message = self.conn.recv()
+                    dest = [
+                        d
+                        for d in message["destination"]
+                        if d.split("/", 1)[0] == "LogicalFallacyPromptWorker"
+                    ]
+                    destSplited = dest[0].split('/')
+                    method = destSplited[1]
+                    param= destSplited[2]
+                    instance_method = getattr(self,method)
+                    instance_method(message)
+            except EOFError:
+                break
+            except Exception as e:
+              print(e)
+              log(f"Listener error: {e}",'error' )
+              break
+
+    def sendToOtherWorker(self, destination, messageId: str, data: dict = None) -> None:
+      sendMessage(
+          conn=LogicalFallacyPromptWorker.conn,
+          destination=destination,
+          messageId=messageId,
+          status="completed",
+          reason="Message sent to other worker successfully.",
+          data=data or {}
+      )
+    ##########################################
+    # add your worker methods here
+    ##########################################
+    def transformasi_prompt_ke_fol(self, prompt_pengguna: str):
+        prompt_fol = prompt_fol_template.format(kalimat=prompt_pengguna)
+
+        response = self.client.chat.completions.create(
+            model= self.model_name,
+            messages=[
+                {"role": "system", "content": "Anda adalah pakar logika formal."},
+                {"role": "user", "content": prompt_fol}
+            ],
+            temperature=0.3,
+            max_tokens=1500
+        )
+
+        llm_response = response.choices[0].message.content.strip()
+
+        # Bersihkan karakter Unicode dan escape
+        def fix_unicode(text):
+            if isinstance(text, str):
+                try:
+                    return text.encode('latin1').decode('utf-8')
+                except UnicodeEncodeError:
+                    return text
+            elif isinstance(text, list):
+                return [fix_unicode(t) for t in text]
+            elif isinstance(text, dict):
+                return {k: fix_unicode(v) for k, v in text.items()}
+            return text
+
+        # Coba parse JSON atau literal_eval jika perlu
+        try:
+            data = json.loads(llm_response)
+        except json.JSONDecodeError:
+            try:
+                data = ast.literal_eval(llm_response)
+            except Exception as e:
+                print("Gagal parsing LLM response:", e)
+                return {"error": str(e), "raw": llm_response}
+
+        kalimat = data.get("kalimat")
+        premis = fix_unicode(data.get("premis", ""))
+        kesimpulan = fix_unicode(data.get("kesimpulan", ""))
+        terms_premis = fix_unicode(data.get("terms_premis", []))
+        terms_kesimpulan = fix_unicode(data.get("terms_kesimpulan", []))
+        atomic_premis = fix_unicode(data.get("atomic_formula_premis", []))
+        atomic_kesimpulan = fix_unicode(data.get("atomic_formula_kesimpulan", []))
+        predikat = fix_unicode(data.get("predikat", []))
+        fol = fix_unicode(data.get("fol", ""))
+
+        return {
+            "kalimat": kalimat,
+            "premis": premis,
+            "kesimpulan": kesimpulan,
+            "terms_premis": terms_premis,
+            "terms_kesimpulan": terms_kesimpulan,
+            "atomic_formula_premis": atomic_premis,
+            "atomic_formula_kesimpulan": atomic_kesimpulan,
+            "predikat": predikat,
+            "fol": fol
+        }
+
+    def intent(self, prompt_pengguna):
+        prompt_intent = prompt_intent_template.format(
+            kalimat=prompt_pengguna
+        )
+        response = self.client.chat.completions.create(
+            model= self.model_name,
+            messages=[{
+                "role": "user",
+                "content": prompt_intent
+            }]
+        )
+
+        # Ambil hasil teks dari response
+        semantic_intent = response.choices[0].message.content.strip()
+        return semantic_intent
+
+    def progression(self, prompt_pengguna):
+        prompt_progression = prompt_progression_template.format(
+            kalimat=prompt_pengguna
+        )
+        response = self.client.chat.completions.create(
+            model= self.model_name,
+            messages=[{
+                "role": "user",
+                "content": prompt_progression
+            }]
+        )
+
+        # Ambil hasil teks dari response
+        prompt_progression = response.choices[0].message.content.strip()
+        return prompt_progression
+
+    def modification(self, prompt_pengguna, premis, kesimpulan, intent, fallacy_type_data, fallacy_location, feedback, masalah_thematic_progression):
+        try:
+            # print(prompt_pengguna)
+            # print("========================")
+            # print(premis)
+            # print("========================")
+            # print(kesimpulan)
+            # print("========================")
+            # print(intent)
+            # print("========================")
+            # print(fallacy_type_data)
+            # print("========================")
+            # print(fallacy_location)
+            # print("========================")
+            # print(feedback)
+            # print("========================")
+            # print(masalah_thematic_progression)
+            # print("========================")
+            prompt_modification = prompt_modification_template.format(
+                kalimat=prompt_pengguna,
+                premis = premis,
+                kesimpulan = kesimpulan,
+                intent = intent,
+                fallacy_type_data = fallacy_type_data,
+                fallacy_location = fallacy_location,
+                feedback = feedback,
+                masalah_thematic_progression = masalah_thematic_progression
+            )        
+
+            response = self.client.chat.completions.create(
+                model= self.model_name,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt_modification
+                    }
+                ]
+            )
+
+            hasil_modifikasi = response.choices[0].message.content
+            return hasil_modifikasi
+        except Exception as e:
+            traceback.print_exc()
+            print(e)        
+
+    def logical_fallacy_prompt_modification(self, message):
+        try:
+            prompt_pengguna = message["data"]["prompt"]
+            premis = message["data"]["premis"]    
+            kesimpulan = message["data"]["kesimpulan"]    
+            fallacy_type = message["data"]["fallacy_type"]    
+            fallacy_location = message["data"]["fallacy_location"]    
+            feedback = message["data"]["feedback"]
+            
+            feedback_intent = message["data"]["feedback_intent"]
+            is_eval = message["data"]["is_eval"]
+            user_intent = message["data"]["user_intent"]
+            prompt_user = message["data"]["prompt_user"]
+
+            eval_iteration = message["data"]["eval_iteration"]      
+            print(eval_iteration)
+            
+            if eval_iteration == 3:
+                log("evaluasi berakhir, sudah mencapai batas", "info")
+                return
+
+            intent = self.intent(prompt_pengguna)
+            progression = self.progression(prompt_pengguna)
+            base_path = os.path.dirname(os.path.abspath(__file__))
+            fallacy_path = os.path.join(base_path, "../fallacy/fallacy.csv")        
+
+            df = pd.read_csv(fallacy_path, delimiter=';')
+
+            fallacy_type_data = ""
+
+            # Loop untuk cari fallacy yang sesuai dengan fallacy_type
+            for _, row in df.iterrows():
+                tipe = row['tipe']
+                deskripsi = row['deskripsi']
+                contoh = row['contoh']
+                
+                # Cek kecocokan (bisa case-insensitive)
+                if tipe.strip().lower() == fallacy_type.strip().lower():
+                    fallacy_type_data += f"- {tipe} adalah {deskripsi}"
+
+            final_prompt = self.modification(prompt_pengguna=prompt_pengguna,
+            premis = premis,
+            kesimpulan=kesimpulan,
+            intent=intent,
+            fallacy_type_data=fallacy_type_data,
+            fallacy_location=fallacy_location,
+            feedback = feedback_intent if feedback_intent is not None else feedback,
+            masalah_thematic_progression=json.loads(progression)["masalah_thematic_progression"][0])
+            # print(final_prompt)
+            final_prompt_parsed = json.loads(final_prompt)["modified_sentence"]
+            modified_intent = self.intent(final_prompt_parsed)
+            # print(modified_intent)
+            intent_relation = self.intent_relationship(prompt_pengguna = prompt_user if prompt_user is not None else prompt_pengguna,
+            prompt_modifikasi=final_prompt_parsed,
+            semantic_intent_prompt= intent,
+            semantic_intent_modif=modified_intent)
+            # print(intent_relation)
+            feedback_intent = intent_relation["feedback_intent"]
+            is_eval = False
+            log(f"iteration: {eval_iteration} user intent:{user_intent},modified_intent:{modified_intent},logical_fallacy:{fallacy_type}")
+
+            if intent_relation["relationship"] == "no entailment":
+                is_eval=True
+                self.prepare_fol_transformation(prompt = final_prompt_parsed,
+                prompt_user =  prompt_user if prompt_user is not None else prompt_pengguna,
+                feedback_intent=feedback_intent,
+                is_eval=is_eval,
+                user_intent=user_intent if user_intent is not None else intent,
+                eval_iteration=eval_iteration+1, message = message
+                )
+
+                return
+            print("okeh")
+            print(final_prompt_parsed)
+        except Exception as e:
+            traceback.print_exc()
+            print(e)
+
+    def intent_relationship(self, prompt_pengguna, prompt_modifikasi, semantic_intent_prompt, semantic_intent_modif):
+        prompt_intent_relationship = prompt_intent_relationship_template.format(
+            prompt_pengguna=prompt_pengguna,
+            prompt_modifikasi=prompt_modifikasi,
+            semantic_intent_prompt=semantic_intent_prompt,
+            semantic_intent_modif=semantic_intent_modif
+        )
+
+        response = self.client.chat.completions.create(
+            model= self.model_name,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt_intent_relationship
+                }
+            ],
+            max_tokens=500
+        )
+
+        # Ambil hasil teks dari response
+        semantic_intent_relationship = response.choices[0].message.content.strip()
+        
+        # Optional: coba parse ke JSON
+        try:
+            parsed_result = json.loads(semantic_intent_relationship)
+        except:
+            parsed_result = {"raw_response": semantic_intent_relationship}
+        
+        return parsed_result
+    
+    def prepare_fol_transformation(self,prompt, message, feedback_intent=None, is_eval = False, user_intent = None, eval_iteration = 0,prompt_user = None,):
+        print(prompt)
+        transformasi_fol = self.transformasi_prompt_ke_fol(prompt)
+        
+        fol = transformasi_fol.get("fol", "FOL tidak ditemukan")
+        premis = transformasi_fol.get("premis", "Premis tidak ditemukan")
+        kesimpulan = transformasi_fol.get("kesimpulan", "Kesimpulan tidak ditemukan")
+        term_premis = transformasi_fol.get("term_premis", "term premis tidak ditemukan")
+        terms_kesimpulan = transformasi_fol.get("terms_kesimpulan", "term kesimpulan tidak ditemukan")
+        atomic_formula_premis = transformasi_fol.get("atomic_formula_premis", "atomic formula premis tidak ditemukan")
+        atomic_formula_kesimpulan = transformasi_fol.get("atomic_formula_kesimpulan", "atomic formula kesimpulan tidak ditemukan")
+        predikat = transformasi_fol.get("predikat", "predikat tidak ditemukan")
+
+        
+        # print("transformasi fol", transformasi_fol)
+        # print("fol", fol)
+        # print("premis", premis)
+        # print("kesimpulan", kesimpulan)
+        self.sendToOtherWorker(
+          messageId=message.get("messageId"),
+          destination=["SMTConverterWorker/fol_to_smtlib/"],
+          data={
+              "fol":fol,
+              "premis":premis,
+              "kesimpulan":kesimpulan,
+              "prompt":prompt,
+              "premis":premis,
+              "kesimpulan":kesimpulan,
+              "terms_kesimpulan":terms_kesimpulan,
+              "term_premis":term_premis,
+              "atomic_formula_premis":atomic_formula_premis,
+              "atomic_formula_kesimpulan":atomic_formula_kesimpulan,
+              "predikat":predikat,
+              "feedback":feedback_intent,
+              "user_intent" : user_intent,
+              "is_eval" : is_eval,
+              "eval_iteration" : eval_iteration,
+              "prompt_user" : prompt_user
+          }
+          )
+
+
+    def test(self,message)->None:
+        """
+        Example method to test the worker functionality.
+        Replace this with your actual worker methods.
+        """
+        data = message.get("data", {})
+        prompt = data["prompt"]
+        self.prepare_fol_transformation(prompt=prompt, message=message)
+
+        # process
+
+
+        #send back to RestAPI
+        # self.sendToOtherWorker(
+        #   messageId=message.get("messageId"),
+        #   destination=["RestApiWorker/onProcessed"],
+        #   data=data
+        #   )
+      #   sendMessage(
+      #     status="completed",
+      #     reason="Test method executed successfully.",
+      #     destination=["supervisor"],
+      #     data={"message": "This is a test response."}
+      # )
+        log("Test method called", "info")
+        # return {"status": "success", "data": "This is a test response."}
+    
+
+def main(conn: Connection, config: dict):
+    worker = LogicalFallacyPromptWorker()
+    worker.run(conn, config)

@@ -91,7 +91,7 @@ class RestApiWorker(FlaskView, Worker):
           destination=destination,
           data=data
       )
-      if not evt.wait(timeout=300):
+      if not evt.wait(timeout=30000):
           # timeout
           return {
               "taskId": task_id,
@@ -163,6 +163,50 @@ class RestApiWorker(FlaskView, Worker):
             data={
                 "question": "What is the capital of France?",
                 "projectId": "12345"
+            }
+        )
+        # print(response)
+        id = response.get("result", [{}])[0].get("_id", "unknown_id")
+        process_name = "test_process1"
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/createNewProgress/{id}"],
+            data={
+                "process_name": process_name,
+                "input": "test_input1",
+                "output": "test_output1",
+            }
+        )
+        #    sub_process_name = data.get('sub_process_name', '')
+    #   input = data.get('input', '')
+    #   output = data.get('output', '')
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/updateProgress/{id}"],
+            data={
+                "process_name": process_name,
+                "sub_process_name": "test_sub_process",
+                "input": "test_sub_process-2",
+                "output": "tes-2",
+            }
+        )
+        if response["status"] == "timeout":
+            return jsonify({"error": "Request timed out"}), 504
+        elif response["status"] == "completed":
+            return jsonify(response["result"]), 200
+        else:
+            return jsonify({"error": "Unknown error"}), 500
+
+    @route('/lfu_prompt', methods=['POST'])
+    def lfu_prompt(self):
+        """
+        A test route to send a message to another worker.
+        """
+        projectId = request.json.get('projectId')
+        prompt = request.json.get('prompt')
+
+        response = self.sendToOtherWorker(
+            destination=["LogicalFallacyPromptWorker/test/"],
+            data={
+                "prompt":prompt
             }
         )
         # print(response)
