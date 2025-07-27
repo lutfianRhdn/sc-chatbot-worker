@@ -436,8 +436,9 @@ class LogicalFallacyPromptWorker(Worker):
             },
             messageId= str(uuid.uuid4())
         )        
+        print(message['data']['chat_id'])
         self.sendToOtherWorker(
-            messageId= str(uuid.uuid4()),
+            messageId= message['messageId'],
             destination=[f"CRAGWorker/generateAnswer/{message['data']['chat_id']}"],
             data={
                 "projectId": "1",
@@ -509,14 +510,6 @@ class LogicalFallacyPromptWorker(Worker):
         # print("fol", fol)
         # print("premis", premis)
         # print("kesimpulan", kesimpulan)
-        print()
-        print(prompt)
-        print(message)
-        print(feedback_intent)
-        print(is_eval )
-        print(user_intent)
-        print(eval_iteration)
-        print(prompt_user)
         self.sendToOtherWorker(
           messageId=message.get("messageId"),
           destination=["SMTConverterWorker/fol_to_smtlib/"],
@@ -544,7 +537,7 @@ class LogicalFallacyPromptWorker(Worker):
           )
 
 
-    def test(self,message)->None:
+    def removeLFPrompt(self,message)->None:
         """
         Example method to test the worker functionality.
         Replace this with your actual worker methods.
@@ -553,7 +546,6 @@ class LogicalFallacyPromptWorker(Worker):
         prompt = data["prompt"]
         id=data["id"]
 
-        # self.id = id
         self.sendToOtherWorker(
             destination=[f"DatabaseInteractionWorker/createNewProgress/{id}"],
             data={
@@ -564,34 +556,7 @@ class LogicalFallacyPromptWorker(Worker):
             messageId= str(uuid.uuid4())
         )
 
-        # self.sendToOtherWorker(
-        #     destination=[f"DatabaseInteractionWorker/updateOutputProcess/{id}"],
-        #     data={
-        #         "process_name": self.process_name,
-        #         "output": value["generation"],
-        #     },
-        #     messageId= str(uuid4())
-        # )
-
         self.prepare_fol_transformation(prompt=prompt, message=message, chat_id = id, process_name = self.process_name)
-
-        # process
-
-
-        #send back to RestAPI
-        # self.sendToOtherWorker(
-        #   messageId=message.get("messageId"),
-        #   destination=["RestApiWorker/onProcessed"],
-        #   data=data
-        #   )
-      #   sendMessage(
-      #     status="completed",
-      #     reason="Test method executed successfully.",
-      #     destination=["supervisor"],
-      #     data={"message": "This is a test response."}
-      # )
-        log("Test method called", "info")
-        # return {"status": "success", "data": "This is a test response."}
     
 
 def main(conn: Connection, config: dict):

@@ -90,6 +90,8 @@ class Supervisor:
                     message = conn.recv()
                     self.handle_worker_message(convertMessage(message), pid)
                 except EOFError as e:
+                    traceback.print_exc()
+                    print(e)
                     log(f"Connection closed for worker {pid}", "warn")
                     break
                 except Exception as e:

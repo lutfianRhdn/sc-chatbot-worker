@@ -1,3 +1,4 @@
+import asyncio
 from langchain_groq import ChatGroq
 import requests
 import json
@@ -62,20 +63,6 @@ class CRAGWorker(Worker):
         try:
             # assign here
             CRAGWorker.conn = conn
-            
-# CRAGWorkerConfig={
-#     "database": database.database_name,
-#     "connection_string": database.connection_string,
-#     "index_name": database.mongo_vector_search_index_name,
-#     "collection_name": database.mongodb_collection_vector,
-#     "TAVILY_API_KEY": tavily_api_key,
-#     "azure_openai_api_key": azure.api_key,
-#     "azure_openai_endpoint": azure.endpoint,
-#     "azure_openai_deployment_name": azure.deployment_name.api,
-#     "azure_openai_deployment_name_embedding": azure.deployment_name.embedding,
-#     "azure_openai_api_version": azure.api_version.api,
-#     "azure_openai_embedding_api_version": azure.api_version.embedding,
-# }
 
             #### add your worker initialization code here
             self.conn=conn
@@ -179,11 +166,11 @@ class CRAGWorker(Worker):
 
             #### until this part
             # start background threads *before* blocking server
-            threading.Thread(target=self.listen_task, daemon=True).start()
+            # threading.Thread(target=self.listen_task, daemon=True).start()
             # threading.Thread(target=self.health_check, daemon=True).start()
 
-            # asyncio.run(self.listen_task())
-            # self.health_check()
+            asyncio.run(self.listen_task())
+            self.health_check()
         except Exception as e:
             traceback.print_exc()
             print(e)
@@ -967,7 +954,7 @@ class CRAGWorker(Worker):
             },
             messageId= str(uuid4())
         )
-
+        # return 
 
         # Run
         inputs = {"question": data['prompt']}

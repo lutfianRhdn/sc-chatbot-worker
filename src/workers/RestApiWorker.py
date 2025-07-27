@@ -55,6 +55,7 @@ class RestApiWorker(FlaskView, Worker):
             try:
                 if RestApiWorker.conn.poll(1):  # Check for messages with 1 second timeout
                     raw = RestApiWorker.conn.recv()
+                    print(raw)
                     msg = convertMessage(raw)
                     self.onProcessed(raw)
             except EOFError:
@@ -63,7 +64,7 @@ class RestApiWorker(FlaskView, Worker):
                 log(f"Listener error: {e}",'error' )
                 break
 
-    def onProcessed(self, msg: dict):
+    def onProcessed(self, msg):
         """
         Called when a worker response comes in.
         msg must contain 'messageId' and 'data'.
@@ -110,6 +111,21 @@ class RestApiWorker(FlaskView, Worker):
     ##########################################
     # FLASK ROUTES FUNCTIONS
     ##########################################
+    @route('/prompt', methods=['GET'])
+    def getPrompt(self):
+      projectId = request.args.get('project_id')
+      response = self.sendToOtherWorker(
+          destination=[f"DatabaseInteractionWorker/getPrompt/{projectId}"],
+          data={"projectId": projectId}
+      )
+      print(response)
+      if response["status"] == "timeout":
+          return jsonify({"error": "Request timed out"}), 504
+      elif response["status"] == "completed":
+          return jsonify(response["result"]), 200
+      else:
+          return jsonify({"error": "Unknown error"}), 500
+      
     @route('/', methods=['GET'])
     def getData(self):
       projectId = request.args.get('projectId')
@@ -124,8 +140,8 @@ class RestApiWorker(FlaskView, Worker):
       else:
           return jsonify({"error": "Unknown error"}), 500
 
-    @route('/test', methods=['POST'])
-    def getData(self):
+    @route('/chat-crag', methods=['POST'])
+    def chatCrag(self):
       
       projectId = request.json.get('projectId')
       prompt = request.json.get('prompt')
@@ -153,47 +169,9 @@ class RestApiWorker(FlaskView, Worker):
           return jsonify(response["result"]), 200
       else:
           return jsonify({"error": "Unknown error"}), 500
-    @route('/send-test', methods=['GET'])
-    def sendTest(self):
-        """
-        A test route to send a message to another worker.
-        """
-        response = self.sendToOtherWorker(
-            destination=["DatabaseInteractionWorker/createNewHistory/"],
-            data={
-                "question": "What is the capital of France?",
-                "projectId": "12345"
-            }
-        )
-        # print(response)
-        id = response.get("result", [{}])[0].get("_id", "unknown_id")
-        process_name = "test_process1"
-        self.sendToOtherWorker(
-            destination=[f"DatabaseInteractionWorker/createNewProgress/{id}"],
-            data={
-                "process_name": process_name,
-                "input": "test_input1",
-                "output": "test_output1",
-            }
-        )
+    
 
-        self.sendToOtherWorker(
-            destination=[f"DatabaseInteractionWorker/updateProgress/{id}"],
-            data={
-                "process_name": process_name,
-                "sub_process_name": "test_sub_process",
-                "input": "test_sub_process-2",
-                "output": "tes-2",
-            }
-        )
-        if response["status"] == "timeout":
-            return jsonify({"error": "Request timed out"}), 504
-        elif response["status"] == "completed":
-            return jsonify(response["result"]), 200
-        else:
-            return jsonify({"error": "Unknown error"}), 500
-
-    @route('/lfu_prompt', methods=['POST'])
+    @route('/chat', methods=['POST'])
     def lfu_prompt(self):
         """
         A test route to send a message to another worker.
@@ -210,43 +188,22 @@ class RestApiWorker(FlaskView, Worker):
             )
         id = message.get("result", [{}])[0].get("_id", "unknown_id")
         
-        response = self.sendToOtherWorker(
-            destination=["LogicalFallacyPromptWorker/test/"],
+        self.sendToOtherWorker(
+            destination=["LogicalFallacyPromptWorker/removeLFPrompt/"],
             data={
                 "prompt":prompt,
                 "id": id
             }
         )
-        # print(response)
-        id = response.get("result", [{}])[0].get("_id", "unknown_id")
-        process_name = "test_process1"
-        self.sendToOtherWorker(
-            destination=[f"DatabaseInteractionWorker/createNewProgress/{id}"],
-            data={
-                "process_name": process_name,
-                "input": "test_input1",
-                "output": "test_output1",
+        return jsonify({
+            "status":"success create new chat history, the progress updated every complated sub_step processed ",
+            "data":{
+                "chat_id":id,
+                "prompt":prompt,
+                "projectId":projectId
             }
-        )
-        #    sub_process_name = data.get('sub_process_name', '')
-    #   input = data.get('input', '')
-    #   output = data.get('output', '')
-        self.sendToOtherWorker(
-            destination=[f"DatabaseInteractionWorker/updateProgress/{id}"],
-            data={
-                "process_name": process_name,
-                "sub_process_name": "test_sub_process",
-                "input": "test_sub_process-2",
-                "output": "tes-2",
-            }
-        )
-        if response["status"] == "timeout":
-            return jsonify({"error": "Request timed out"}), 504
-        elif response["status"] == "completed":
-            return jsonify(response["result"]), 200
-        else:
-            return jsonify({"error": "Unknown error"}), 500
-
+        }), 200
+      
 def main(conn: Connection, config: dict):
     
     worker = RestApiWorker()

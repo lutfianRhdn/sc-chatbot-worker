@@ -68,6 +68,7 @@ class DatabaseInteractionWorker(Worker):
               instance_method = getattr(self,method)
               print(f"Calling method: {method} with param: {param} and data: {message.get('data', {})}")
               result = instance_method(id=param, data=message.get("data", {}))
+              print(result)
               print(f"Result from {method} with length {len(result.get('data', []))} and destination {result.get('destination', [])}")
               sendMessage(
                   conn=self.conn, 
@@ -80,12 +81,18 @@ class DatabaseInteractionWorker(Worker):
           log("Connection closed by supervisor",'error')
           break
       except Exception as e:
+          traceback.print_exc()
+          print(e)
           log(f"Message loop error: {e}",'error')
           break
-  
+  0
   #########################################
   # Methods for Database Interaction
   #########################################
+  
+  def getPrompt(self,id,data):
+    prompts = self._db['prompts'].find({"project_id":id})
+    return {"data":list(prompts),"destination":[f"RestApiWorker/onProcessed"]}
   
   def getTweets(self, id,data):
     if not self._isBusy:
@@ -98,7 +105,6 @@ class DatabaseInteractionWorker(Worker):
 
         collection = self._dbTweets['tweets']
         # Query
-        print(keyword)
         print(keyword.replace(' ','|'),"keyword")
         match_stage = {
               '$match': {
@@ -171,7 +177,7 @@ class DatabaseInteractionWorker(Worker):
       
     })
     print(f"New history created with id: {created.inserted_id}")
-    return {"data":[{"_id":created.inserted_id}],"destination":["RestApiWorker/onProcessed"]}
+    return {"data":[{"_id":created.inserted_id}],"destination":["RestApiWorker/onProcessed/"]}
 
     
     
