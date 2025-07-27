@@ -1,0 +1,6 @@
+# Virtual environments
+venv            
+
+__pycache__
+.env
+src/data/*

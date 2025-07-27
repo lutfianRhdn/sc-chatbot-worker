@@ -36,7 +36,7 @@ class RestApiWorker(FlaskView, Worker):
         threading.Thread(target=self.listen_task, daemon=True).start()
         threading.Thread(target=self.health_check, daemon=True).start()
 
-        app.run(debug=True, port=self._port, use_reloader=False)
+        app.run(debug=True, port=self._port, use_reloader=False,host="0.0.0.0")
         # asyncio.run(self.listen_task())
         self.health_check()
 

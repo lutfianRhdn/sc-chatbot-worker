@@ -44,6 +44,9 @@ from prompt.KeywordExtractor import re_write_prompt
 from prompt.PromptExtract import prompt_extrac
 from prompt.GenerateAnswer import prompt
 from utils.state import GraphState
+import nltk
+nltk.download('punkt', quiet=True)
+
 
 class CRAGWorker(Worker):
     ###############
