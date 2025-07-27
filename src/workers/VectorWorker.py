@@ -20,10 +20,7 @@ from pymongo import MongoClient
 import traceback
 import nltk
 # check if nltk data is downloaded, if not download it
-if not os.path.exists(os.path.join(nltk.data.find('tokenizers'), 'punkt')):
-    print("Downloading NLTK punkt tokenizer...")
-    nltk.download('punkt', quiet=True)
-# nltk.download('punkt')
+nltk.download('punkt', quiet=True)
 
 from .Worker import Worker
 

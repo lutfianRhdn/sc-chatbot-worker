@@ -2,7 +2,6 @@ import json
 from multiprocessing.connection import Connection
 import os
 import threading
-from turtle import pd
 import uuid
 import time
 from  utils.log import log 
