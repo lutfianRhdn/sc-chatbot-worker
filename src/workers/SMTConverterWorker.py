@@ -96,6 +96,9 @@ class SMTConverterWorker(Worker):
             # print(message)
             ENTITY_SORT = "Entity"
             fol = message['data']['fol']
+            chat_id = message['data']['chat_id']
+            process_name = message['data']['process_name']
+
             logic = "ALL"
             # fol: str, logic: str = "ALL"
             def extract_predicates(expr: str) :
@@ -240,6 +243,17 @@ class SMTConverterWorker(Worker):
                 "(get-model)"
             ]
             # print("\n".join(lines))
+            if message['data']['is_eval'] == False:
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": message["data"]["process_name"],
+                        "sub_process_name": "Generate SMT file",
+                        "input": fol,
+                        "output": "\n".join(lines),
+                    },
+                    messageId=(str(uuid.uuid4()))
+                )
             return self.smt_solver("\n".join(lines),message)
         except Exception as e:
             traceback.print_exc()
@@ -297,6 +311,21 @@ class SMTConverterWorker(Worker):
             # if result.returncode != 0:
             #     raise RuntimeError(f"CVC5 error (code {result.returncode}):\n{stderr_output}")
             # print(counterexample)
+            if message['data']['is_eval'] == False:
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": message["data"]["process_name"],
+                        "sub_process_name": "Running SMT Solver",
+                        "input": smt2_code,
+                        "output": {
+                            "check_sat": check_sat,
+                            "counterexample": counterexample
+                        },
+                    },
+                    messageId=(str(uuid.uuid4()))
+                )
+
             self.sendToOtherWorker(
                 messageId=message.get("messageId"),
                 destination=["CounterExampleCreatorWorker/interpretasi_counterexample/"],
@@ -314,7 +343,10 @@ class SMTConverterWorker(Worker):
                     "is_eval": message["data"]["is_eval"],
                     "user_intent" : message["data"]["user_intent"],
                     "eval_iteration" : message["data"]["eval_iteration"],
-                    "prompt_user" : message["data"]["prompt_user"]
+                    "prompt_user" : message["data"]["prompt_user"],
+                    "chat_id" : message["data"]["chat_id"],
+                    "process_name" : message["data"]["process_name"],
+                    "latest_intent": message["data"]["latest_intent"]
             })
 
         finally:

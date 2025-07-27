@@ -180,10 +180,10 @@ class CRAGWorker(Worker):
             #### until this part
             # start background threads *before* blocking server
             threading.Thread(target=self.listen_task, daemon=True).start()
-            threading.Thread(target=self.health_check, daemon=True).start()
+            # threading.Thread(target=self.health_check, daemon=True).start()
 
             # asyncio.run(self.listen_task())
-            self.health_check()
+            # self.health_check()
         except Exception as e:
             traceback.print_exc()
             print(e)

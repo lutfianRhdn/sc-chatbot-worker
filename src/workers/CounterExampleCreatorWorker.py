@@ -132,8 +132,32 @@ class CounterExampleCreatorWorker(Worker):
             )
             hasil = response.choices[0].message.content.strip()
             try:
+                if hasil.startswith("```json"):
+                    hasil = hasil.replace("```json","")
+                    hasil = hasil.replace("```","")
                 result_json = json.loads(hasil)
                 # print(hasil)
+                if message['data']['is_eval'] == False:
+                    self.sendToOtherWorker(
+                        destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                        data={
+                            "process_name": message["data"]["process_name"],
+                            "sub_process_name": "Counterexample Interpretation",
+                            "input": {
+                                "prompt" : prompt_pengguna,
+                                "premis" : json.dumps(premis),
+                                "kesimpulan" : kesimpulan,
+                                "terms_premis" : json.dumps(terms_premis),
+                                "terms_kesimpulan" : json.dumps(terms_kesimpulan),
+                                "predikat" : json.dumps(predikat),
+                                "fol" : fol.replace('"', '\\"'),
+                                "model" : model
+                            },
+                            "output": result_json["interpretasi_counterexample"],
+                        },
+                        messageId=(str(uuid.uuid4()))
+                    )
+                    
                 self.sendToOtherWorker(
                         messageId=message.get("messageId"),
                         destination=["LogicalFallacyClassificationWorker/prepare_classification/"],
@@ -146,7 +170,10 @@ class CounterExampleCreatorWorker(Worker):
                             "is_eval": message["data"]["is_eval"],
                             "user_intent": message["data"]["user_intent"],
                             "eval_iteration" : message["data"]["eval_iteration"],
-                            "prompt_user" : message["data"]["prompt_user"]
+                            "prompt_user" : message["data"]["prompt_user"],
+                            "chat_id" : message["data"]["chat_id"],
+                            "process_name" : message["data"]["process_name"],
+                            "latest_intent" : message["data"]["latest_intent"]
                         }
                         )
 

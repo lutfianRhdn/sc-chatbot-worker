@@ -119,6 +119,28 @@ class LogicalFallacyClassificationWorker(Worker):
         parsed = json.loads(llm_response)
         
         # print("Raw response:", parsed)
+        if message['data']['is_eval'] == False:
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Logical fallacy Classification",
+                    "input": {
+                        "premis" :premis,
+                        "kesimpulan" :kesimpulan,
+                        "interpretasi" :interpretasi,
+                        "kalimat" :prompt,
+                        "fallacy_data" : fallacy_data                    
+                    },
+                    "output": {
+                        "fallacy_type":parsed.get("fallacy_type", "Unknown"),
+                        "fallacy_location":parsed.get("fallacy_location", {}),
+                        "feedback":parsed.get("feedback", "Tidak ada feedback."),
+                    },
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
         self.sendToOtherWorker(
             messageId=message.get("messageId"),
             destination=["LogicalFallacyPromptWorker/logical_fallacy_prompt_modification/"],
@@ -133,7 +155,10 @@ class LogicalFallacyClassificationWorker(Worker):
                 "is_eval":message["data"]["is_eval"],
                 "user_intent": message["data"]["user_intent"],
                 "eval_iteration" : message["data"]["eval_iteration"],
-                "prompt_user" : message["data"]["prompt_user"]
+                "prompt_user" : message["data"]["prompt_user"],
+                "chat_id" : message["data"]["chat_id"],
+                "process_name" : message["data"]["process_name"],
+                "latest_intent" : message["data"]["latest_intent"]
             }
             )        
  

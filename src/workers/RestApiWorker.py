@@ -176,9 +176,7 @@ class RestApiWorker(FlaskView, Worker):
                 "output": "test_output1",
             }
         )
-        #    sub_process_name = data.get('sub_process_name', '')
-    #   input = data.get('input', '')
-    #   output = data.get('output', '')
+
         self.sendToOtherWorker(
             destination=[f"DatabaseInteractionWorker/updateProgress/{id}"],
             data={
@@ -202,11 +200,21 @@ class RestApiWorker(FlaskView, Worker):
         """
         projectId = request.json.get('projectId')
         prompt = request.json.get('prompt')
-
+      
+        message = self.sendToOtherWorker(
+                destination=["DatabaseInteractionWorker/createNewHistory/"],
+                data={
+                    "question": prompt,
+                    "projectId": projectId
+                }
+            )
+        id = message.get("result", [{}])[0].get("_id", "unknown_id")
+        
         response = self.sendToOtherWorker(
             destination=["LogicalFallacyPromptWorker/test/"],
             data={
-                "prompt":prompt
+                "prompt":prompt,
+                "id": id
             }
         )
         # print(response)

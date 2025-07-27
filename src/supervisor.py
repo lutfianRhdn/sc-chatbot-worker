@@ -25,12 +25,12 @@ class Supervisor:
         # just edit this part to add your workers
         ####
         
-        # self.create_worker("DatabaseInteractionWorker", count=1, config=DatabaseInteractionWorkerConfig)
-        # self.create_worker("VectorWorker", count=1, config=VectorWorkerConfig)
-        # self.create_worker("PromptRecommendationWorker", count=1, config=PromptRecommendationWorkerConfig)
-        # self.create_worker("RabbitMQWorker", count=1, config=RabbitMQWorkerConfig)
+        self.create_worker("DatabaseInteractionWorker", count=1, config=DatabaseInteractionWorkerConfig)
+        self.create_worker("VectorWorker", count=1, config=VectorWorkerConfig)
+        self.create_worker("PromptRecommendationWorker", count=1, config=PromptRecommendationWorkerConfig)
+        self.create_worker("RabbitMQWorker", count=1, config=RabbitMQWorkerConfig)
         self.create_worker("RestApiWorker", count=1, config=RestApiWorkerConfig)
-        # self.create_worker("CRAGWorker", count=1, config=CRAGWorkerConfig)
+        self.create_worker("CRAGWorker", count=1, config=CRAGWorkerConfig)
         self.create_worker("LogicalFallacyPromptWorker", count=1, config=LogicalFallacyPromptWorkerConfig)
         self.create_worker("SMTConverterWorker", count=1, config=SMTConverterWorkerConfig)
         self.create_worker("CounterExampleCreatorWorker", count=1, config=CounterExampleCreatorWorkerConfig)
