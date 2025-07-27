@@ -181,14 +181,17 @@ class CRAGWorker(Worker):
 
     def health_check(self):
         """Send a heartbeat every 10s."""
+        log("CRAGWorker is starting health check thread.", "info")
         while True:
+            log("CRAGWorker is sending heartbeat.", "info")
             sendMessage(
                 conn=CRAGWorker.conn,
                 messageId="heartbeat",
                 status="healthy"
             )
             time.sleep(10)
-    def listen_task(self):
+   async def listen_task(self):
+        print("CRAGWorker is listening for messages...")
         while True:
             try:
                 if CRAGWorker.conn.poll(1):  # Check for messages with 1 second timeout
