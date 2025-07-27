@@ -66,9 +66,9 @@ class DatabaseInteractionWorker(Worker):
               method = destSplited[1]
               param= destSplited[2]
               instance_method = getattr(self,method)
-              print(f"Calling method: {method} with param: {param} and data: {message.get('data', {})}")
+              # print(f"Calling method: {method} with param: {param} and data: {message.get('data', {})}")
               result = instance_method(id=param, data=message.get("data", {}))
-              print(result)
+              # print(result)
               print(f"Result from {method} with length {len(result.get('data', []))} and destination {result.get('destination', [])}")
               sendMessage(
                   conn=self.conn, 
@@ -105,7 +105,7 @@ class DatabaseInteractionWorker(Worker):
 
         collection = self._dbTweets['tweets']
         # Query
-        print(keyword.replace(' ','|'),"keyword")
+        # print(keyword.replace(' ','|'),"keyword")
         match_stage = {
               '$match': {
                   'full_text': {'$regex': keyword.replace(' ','|'), '$options': 'i'}
@@ -118,7 +118,7 @@ class DatabaseInteractionWorker(Worker):
         if start_date and end_date:
           start_datetime = datetime.strptime(f"{start_date} 00:00:00 +0000", "%Y-%m-%d %H:%M:%S %z")
           end_datetime = datetime.strptime(f"{end_date} 23:59:59 +0000", "%Y-%m-%d %H:%M:%S %z")
-          print(f"Filtering tweets from {start_datetime} to {end_datetime}")
+          # print(f"Filtering tweets from {start_datetime} to {end_datetime}")
           
           add_fields_stage = {
               '$addFields': {
@@ -186,7 +186,7 @@ class DatabaseInteractionWorker(Worker):
     input = data.get('input', '')
     output = data.get('output', '')
     
-    print(f"Creating new progress for {process_name} with input: {input} and output: {output}")
+    # print(f"Creating new progress for {process_name} with input: {input} and output: {output}")
     data = self._db['history'].find_one({"_id": ObjectId(id)})
     processed = data.get('process', [])
     processed.append({
@@ -195,7 +195,6 @@ class DatabaseInteractionWorker(Worker):
       "output": output,
       "sub_process": []
     })
-    print(processed,"processed")
     updated = self._db['history'].update_one(
         {"_id": ObjectId(id)},
         {"$set": {
@@ -207,7 +206,7 @@ class DatabaseInteractionWorker(Worker):
     # print(f"New progress created for {process_name} with input: {input} and output: {output}")
    
   def updateOutputProcess(self,id,data):
-      print(f"Updating output for id: {id} with data: {data}")
+      # print(f"Updating output for id: {id} with data: {data}")
       process_name = data.get('process_name', '')
       output = data.get('output', '')
 
@@ -223,7 +222,7 @@ class DatabaseInteractionWorker(Worker):
       
     
   def updateFinalAnswer(self,id,data):
-      print(f"Updating output for id: {id} with data: {data}")
+      # print(f"Updating output for id: {id} with data: {data}")
       output = data.get('output', '')
 
       updated = self._db['history'].update_one(
@@ -237,13 +236,13 @@ class DatabaseInteractionWorker(Worker):
 
       
   def updateProgress(self,id,data):
-      print(f"Updating progress for id: {id} with data: {data}")
+      # print(f"Updating progress for id: {id} with data: {data}")
       process_name = data.get('process_name', '')
       sub_process_name = data.get('sub_process_name', '')
       input = data.get('input', '')
       output = data.get('output', '')
       message = self._db['history'].find_one({"_id": ObjectId(id)})
-      print(f"Found message: {message}")
+      # print(f"Found message: {message}")
       process_list = message.get('process', [])
 
       # Cek apakah proses dengan nama process_name sudah ada
@@ -251,7 +250,7 @@ class DatabaseInteractionWorker(Worker):
       for process in process_list:
           if process['process_name'] == process_name:
               print(f"Process {process_name} found, updating sub-process.")
-              print(f"Sub-process name: {sub_process_name}, Input: {input}, Output: {output}")
+              # print(f"Sub-process name: {sub_process_name}, Input: {input}, Output: {output}")
               process['sub_process'].append({
                   "sub_process_name": sub_process_name,
                   "input": input,
@@ -284,7 +283,7 @@ class DatabaseInteractionWorker(Worker):
 
   def createNewPrompt(self,id,data):
     try:
-      print(f"Creating new prompt  with data: {data}")
+      # print(f"Creating new prompt  with data: {data}")
       created = self._db['prompts'].insert_one(data)
       print(f"New prompt created with id: {created.inserted_id}")
       return {"data":[{"_id":created.inserted_id}],"destination":["supervisor"]}

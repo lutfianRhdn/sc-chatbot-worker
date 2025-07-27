@@ -55,7 +55,7 @@ class RestApiWorker(FlaskView, Worker):
             try:
                 if RestApiWorker.conn.poll(1):  # Check for messages with 1 second timeout
                     raw = RestApiWorker.conn.recv()
-                    print(raw)
+                    # print(raw)
                     msg = convertMessage(raw)
                     self.onProcessed(raw)
             except EOFError:
@@ -118,7 +118,7 @@ class RestApiWorker(FlaskView, Worker):
           destination=[f"DatabaseInteractionWorker/getPrompt/{projectId}"],
           data={"projectId": projectId}
       )
-      print(response)
+    #   print(response)
       if response["status"] == "timeout":
           return jsonify({"error": "Request timed out"}), 504
       elif response["status"] == "completed":

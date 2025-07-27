@@ -3,6 +3,7 @@ import subprocess
 from multiprocessing.connection import Connection
 import os
 import re
+import platform
 import tempfile
 import threading
 import traceback
@@ -33,10 +34,10 @@ class SMTConverterWorker(Worker):
 
         #### add your worker initialization code here
         
+        self.os_type = platform.system()
         
         
-        
-        
+        log(f"SMTConverterWorker initialized on {self.os_type}", "info")
         
         #### until this part
         # start background threads *before* blocking server
@@ -264,8 +265,12 @@ class SMTConverterWorker(Worker):
         cvc5_path: str = None
         get_model: bool = True
         if cvc5_path is None:
+            
             base_path = os.path.dirname(os.path.abspath(__file__))
-            cvc5_path = os.path.join(base_path, "../cvc5/bin/cvc5.exe")
+            cvc5_path = os.path.join(base_path,'../cvc5/unix/bin/cvc5')
+            if self.os_type =='Windows':
+                cvc5_path = os.path.join(base_path, "../cvc5/windows/bin/cvc5.exe")
+            
             possible_paths = [cvc5_path]
             for path in possible_paths:
                 try:
@@ -274,6 +279,8 @@ class SMTConverterWorker(Worker):
                         cvc5_path = path
                         break
                 except:
+                    log(f"Failed to run CVC5 at {path}. Trying next path.", "error")
+                    cvc5_path = None
                     continue
             if cvc5_path is None:
                 raise RuntimeError("CVC5 not found.")

@@ -163,7 +163,7 @@ class Supervisor:
 
         target = available[0]
         try:
-            print("Sending message to worker:", worker_name, "PID:", target['process'].pid, "Method:", method, "Message ID:", msg_id, "Status:", status, "Reason:", reason, "Size data:", len(message.get('data', {})))
+            log("Sending message to worker:", worker_name, "PID:", target['process'].pid, "Method:", method, "Message ID:", msg_id, "Status:", status, "Reason:", reason, "Size data:", len(message.get('data', {})),'info')
             target['conn'].send(message)
             log(f"Sent message {msg_id} to {worker_name} with {method} PID: {target['process'].pid}", "success")
         except Exception as e:

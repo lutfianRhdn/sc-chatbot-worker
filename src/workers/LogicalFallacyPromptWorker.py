@@ -255,8 +255,8 @@ class LogicalFallacyPromptWorker(Worker):
             latest_intent = message["data"]["latest_intent"]
 
             eval_iteration = message["data"]["eval_iteration"]      
-            print(eval_iteration, fallacy_type)
-            print(feedback_intent)
+            # print(eval_iteration, fallacy_type)
+            # print(feedback_intent)
             
             if eval_iteration == 3 or (fallacy_type == None and feedback_intent == None):
                 self.final_prompt_logical_fallacy(text=prompt_pengguna,
@@ -409,10 +409,12 @@ class LogicalFallacyPromptWorker(Worker):
         return parsed_result
     
     def final_prompt_logical_fallacy(self, text, message, intent_relation, fallacy_type, user_intent, modified_intent):
+        chat_id = message['data']['chat_id']
+        log("success remove logical fallacy from prompt on chatId : "+chat_id,'success')
         self.sendToOtherWorker(
-            destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+            destination=[f"DatabaseInteractionWorker/updateProgress/{chat_id}"],
             data={
-                "process_name": self.process_name,
+                "process_name": message["data"]["process_name"],
                 "sub_process_name": "Evaluation",
                 "input": {
                     "intent_relation": str(intent_relation),
@@ -426,20 +428,19 @@ class LogicalFallacyPromptWorker(Worker):
         )
         
         log("Sukses remove logical fallacy dari prompt")
-        print(text)
+        # print(text)
 
         self.sendToOtherWorker(
-            destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
+            destination=[f"DatabaseInteractionWorker/updateOutputProcess/{chat_id}"],
             data={
                 "process_name": message["data"]["process_name"],
                 "output": text,
             },
             messageId= str(uuid.uuid4())
         )        
-        print(message['data']['chat_id'])
         self.sendToOtherWorker(
             messageId= message['messageId'],
-            destination=[f"CRAGWorker/generateAnswer/{message['data']['chat_id']}"],
+            destination=[f"CRAGWorker/generateAnswer/{chat_id}"],
             data={
                 "projectId": "1",
                 "prompt": text
@@ -457,7 +458,7 @@ class LogicalFallacyPromptWorker(Worker):
         process_name = "",
         latest_intent = None):
 
-        print(prompt)
+        # print(prompt)
         transformasi_fol = self.transformasi_prompt_ke_fol(prompt)
         
         fol = transformasi_fol.get("fol", "FOL tidak ditemukan")
@@ -530,8 +531,8 @@ class LogicalFallacyPromptWorker(Worker):
               "is_eval" : is_eval,
               "eval_iteration" : eval_iteration,
               "prompt_user" : prompt_user,
-              "chat_id" : chat_id,
-              "process_name" : process_name,
+              "chat_id" : chat_id or message['data']['chat_id'],
+              "process_name" : process_name or message['data']['process_name'],
               "latest_intent":latest_intent
           }
           )
