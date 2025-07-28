@@ -190,7 +190,7 @@ class CRAGWorker(Worker):
                 status="healthy"
             )
             time.sleep(10)
-   async def listen_task(self):
+    async def listen_task(self):
         print("CRAGWorker is listening for messages...")
         while True:
             try:

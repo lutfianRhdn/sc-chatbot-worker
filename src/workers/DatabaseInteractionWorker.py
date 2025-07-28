@@ -1,3 +1,4 @@
+import json
 from multiprocessing.connection import Connection
 import os
 
@@ -85,7 +86,7 @@ class DatabaseInteractionWorker(Worker):
           print(e)
           log(f"Message loop error: {e}",'error')
           break
-  0
+  
   #########################################
   # Methods for Database Interaction
   #########################################
@@ -180,7 +181,30 @@ class DatabaseInteractionWorker(Worker):
     return {"data":[{"_id":created.inserted_id}],"destination":["RestApiWorker/onProcessed/"]}
 
     
-    
+  def getProgress(self,id,data):
+    # print(f"Fetching progress for id: {id}")
+    process_name = data['process_name'] if 'process_name' in data else ''
+    # print(f"Process name: {process_name}")
+    query = {"_id": ObjectId(id)}
+    if process_name:
+      query['process.process_name'] = process_name
+    # print(f"Query: {query}")
+    message = self._db['history'].find_one(query)
+    # print(f"Found message: {message}")
+    if not message:
+      print(f"No message found with id: {id}")
+      return {"data": [], "destination": ["RestApiWorker/onProcessed/"]}
+    process_list = message.get('process', [])
+    # print(f"Process list: {process_list}")
+    if process_name:
+      process_list = [p for p in process_list if p['process_name'] == process_name]
+      # print(f"Filtered process list: {process_list}")
+    if not process_list:
+      print(f"No process found with name: {process_name}")
+    print("process_name",process_name,json.dumps(process_list, indent=2))
+    return {"data": list(process_list), "destination": ["RestApiWorker/onProcessed/"]}
+  
+  
   def createNewProgress(self,id,data):
     process_name = data.get('process_name', '')
     input = data.get('input', '')
@@ -297,8 +321,9 @@ class DatabaseInteractionWorker(Worker):
 def convertObjectIdToStr(data: list) -> list:
    res =[]
    for doc in data:
+    if("_id" in doc and isinstance(doc["_id"], ObjectId)):
       doc["_id"] = str(doc["_id"])
-      res.append(doc)
+    res.append(doc)
    return res
 # This is the main function that the supervisor calls
 

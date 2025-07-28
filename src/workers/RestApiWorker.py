@@ -10,6 +10,7 @@ import utils.log as log
 from utils.handleMessage import sendMessage, convertMessage
 from .Worker import Worker
 from flask_cors import CORS
+from urllib.parse import urlparse
 
 app = Flask(__name__)
 CORS(app)
@@ -126,6 +127,27 @@ class RestApiWorker(FlaskView, Worker):
           return jsonify({"error": "Request timed out"}), 504
       elif response["status"] == "completed":
           return jsonify(response["result"]), 200
+      else:
+          return jsonify({"error": "Unknown error"}), 500
+      
+      
+    @route('/chat/<id>', methods=['GET'])
+    def getProgresst(self,id):
+      progress_name = request.args.get('progress_name')
+      print(f"Getting progress for chat ID: {id} with progress name: {progress_name}")
+      response = self.sendToOtherWorker(
+          destination=[f"DatabaseInteractionWorker/getProgress/{id}"],
+          data={"id": id, "process_name": progress_name}
+      )
+    #   print(response)
+      if response["status"] == "timeout":
+          return jsonify({"error": "Request timed out"}), 504
+      elif response["status"] == "completed":
+          return jsonify({
+              "status": "success",
+              "message": "Progress retrieved successfully",
+            "data": response["result"]
+              }), 200
       else:
           return jsonify({"error": "Unknown error"}), 500
       
