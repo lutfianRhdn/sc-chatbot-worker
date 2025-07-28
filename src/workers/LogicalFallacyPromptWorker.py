@@ -45,7 +45,7 @@ class LogicalFallacyPromptWorker(Worker):
         self.model_name = config["azure_openai_deployment_name"]
         
         
-        
+        log("Logical Fallacy Prompt Worker initialized with model: " + self.model_name, 'info')
         
         
         #### until this part
