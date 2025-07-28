@@ -207,21 +207,50 @@ class RestApiWorker(FlaskView, Worker):
                 "id": id,
                 "projectId": projectId
             }
-      )
-        if message["status"] == "timeout":
-          return jsonify({"error": "Request timed out"}), 504
-        elif message["status"] == "completed":
-          return jsonify({
-              "status": "success create new chat history, the progress updated every completed sub_step processed",
-                "data": {
-                    "chat_id": id,
-                    "prompt": prompt,
-                    "projectId": projectId
-                }
-              }), 200
-        else:
-          return jsonify({"error": "Unknown error"}), 500
+        )
+        return jsonify({
+            "status":"success create new chat history, the progress updated every complated sub_step processed ",
+            "data":{
+                "chat_id":id,
+                "prompt":prompt,
+                "projectId":projectId
+            }
+        }), 200
+
+     
+    @route('/chat-respons', methods=['POST'])
+    def lfu_respons(self):
+        """
+        A test route to send a message to another worker.
+        """
+        projectId = request.json.get('projectId')
+        respons = request.json.get('respons')
       
+        # message = self.sendToOtherWorker(
+        #         destination=["DatabaseInteractionWorker/createNewHistory/"],
+        #         data={
+        #             "question": respons,
+        #             "projectId": projectId
+        #         }
+        #     )
+        # id = message.get("result", [{}])[0].get("_id", "unknown_id")
+        
+        self.sendToOtherWorker(
+            destination=["LogicalFallacyResponseWorker/removeLFResponse/"],
+            data={
+                "respons":respons,
+                # "id": id
+            }
+        )
+        return jsonify({
+            "status":"success create new chat history, the progress updated every complated sub_step processed ",
+            "data":{
+                # "chat_id":id,
+                "respons":respons,
+                # "projectId":projectId
+            }
+        }), 200
+       
 def main(conn: Connection, config: dict):
     
     worker = RestApiWorker()
