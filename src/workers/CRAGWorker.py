@@ -55,6 +55,7 @@ class CRAGWorker(Worker):
     route_base = "/"
     conn:Connection
     requests: dict = {}
+    isBusy: bool = False
     process_name: str = "Reduce information hallucinations by applying CRAG."
     def __init__(self):
         # we'll assign these in run()
@@ -196,6 +197,17 @@ class CRAGWorker(Worker):
             try:
                 if CRAGWorker.conn.poll(1):  # Check for messages with 1 second timeout
                     message = self.conn.recv()
+                    if(self.isBusy):
+                        print("CRAGWorker is busy, ignoring message.")
+                        self.sendToOtherWorker(
+                            messageId=message.get("messageId"),
+                            destination=message.get("destination", []),
+                            data=message.get("data", {}),
+                            status="busy",
+                            reason="CRAGWorker is busy processing another request."
+                        )
+                        continue
+                    self.isBusy =True
                     dest = [
                         d
                         for d in message["destination"]
@@ -966,42 +978,21 @@ class CRAGWorker(Worker):
         inputs = {"question": data['prompt']}
         for output in self.app.stream(inputs):
             for key, value in output.items():
-                # Node
-                pprint(f"Node '{key}':")
-                # Optional: print full state at each node
-                # pprint.pprint(value["keys"], indent=2, width=80, depth=None)
-            # pprint("\n---\n")
-
-        # Final generation
+                pass
         final_response = value["generation"]
-        # print(value["generation"])
-        # text = self.casefoldingText("Halo, ini adalah contoh teks untuk diolah.")
-        # text = self.cleaningText(text)
-        # text = self.tokenizingText(text)
-        # path_slang = "H:/My Drive/UNIKOM/Skripsi/Code/Socialabs/socialabs-chatbot/kamus/slang.xlsx"
-        # if not os.path.exists(path_slang):
-        #     print("slang not found, using default path")
-
-        # df_slang = pd.read_excel(os.path.abspath(path_slang))
-        # slang_dict = dict(zip(df_slang['slang'], df_slang['formal']))
-        # text = self.normalize_text(' '.join(text), slang_dict)
-        # print(text)
-
-        
-        
-
+       
 
 
         self.sendToOtherWorker(
             destination=[f"DatabaseInteractionWorker/updateOutputProcess/{id}"],
             data={
                 "process_name": self.process_name,
-                "output": value["generation"],
+                "output": final_response,
             },
             messageId= str(uuid4())
         )
 
-
+        log(f"CRAGWorker processing completed successfully. chat_id: {id}", "info")
         input_evaluasi = {
             "claim": value["generation"],
             "evidence": value["documents"],
@@ -1012,27 +1003,8 @@ class CRAGWorker(Worker):
             for key, value in output.items():
                 # Node
                 pprint(f"Node '{key}':")
-                # Optional: print full state at each node
-                # pprint.pprint(value["keys"], indent=2, width=80, depth=None)
             pprint("\n---\n")
-
-
-        #send back to RestAPI
-        self.sendToOtherWorker(
-          messageId=mId,
-          destination=["RestApiWorker/onProcessed"],
-          data= final_response
-
-          )
-        
-      #   sendMessage(
-      #     status="completed",
-      #     reason="Test method executed successfully.",
-      #     destination=["supervisor"],
-      #     data={"message": "This is a test response."}
-      # )
-        # log("Test method called", "info")
-        # return {"status": "success", "data": "This is a test response."}
+        log(f"CRAGWorker eval completed successfully. chat_id: {id}", "info")
 
 def main(conn: Connection, config: dict):
     worker = CRAGWorker()
