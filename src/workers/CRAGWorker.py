@@ -45,7 +45,7 @@ from prompt.PromptExtract import prompt_extrac
 from prompt.GenerateAnswer import prompt
 from utils.state import GraphState
 import nltk
-nltk.download('punkt', quiet=True)
+nltk.download('punkt_tab')
 
 
 class CRAGWorker(Worker):

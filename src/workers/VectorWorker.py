@@ -20,7 +20,7 @@ from pymongo import MongoClient
 import traceback
 import nltk
 # check if nltk data is downloaded, if not download it
-nltk.download('punkt', quiet=True)
+nltk.download('punkt_tab')
 
 from .Worker import Worker
 
