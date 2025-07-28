@@ -9,8 +9,11 @@ import time
 import utils.log as log
 from utils.handleMessage import sendMessage, convertMessage
 from .Worker import Worker
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
+
 
 class RestApiWorker(FlaskView, Worker):
     ###############
