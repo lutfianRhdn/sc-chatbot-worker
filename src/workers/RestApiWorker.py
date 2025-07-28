@@ -43,7 +43,7 @@ class RestApiWorker(FlaskView, Worker):
         # start background threads *before* blocking server
         threading.Thread(target=run_listen_task, daemon=False).start()
 
-        app.run(debug=True, port=6000, use_reloader=False,host="0.0.0.0")
+        app.run(debug=True, port=self._port, use_reloader=False,host="0.0.0.0")
        
 
             
