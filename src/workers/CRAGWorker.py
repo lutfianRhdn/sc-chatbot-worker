@@ -68,6 +68,9 @@ class CRAGWorker(Worker):
             # assign here
             CRAGWorker.conn = conn
 
+            #### until this part
+              # start background threads *before* blocking server
+           
             #### add your worker initialization code here
             self.conn=conn
             self._db_name = config.get("database", "mydatabase") 
@@ -167,47 +170,44 @@ class CRAGWorker(Worker):
 
             self.app_evaluasi = workflow_evaluasi.compile()
             print('CRAGWorker initialized successfully.')
-
-            #### until this part
-            # start background threads *before* blocking server
-            # threading.Thread(target=self.listen_task, daemon=True).start()
-            # threading.Thread(target=self.health_check, daemon=True).start()
-
-            asyncio.run(self.listen_task())
-            self.health_check()
+            async def run_background_tasks():
+                try:
+                    # Run both health_check and listen_task concurrently
+                    await asyncio.gather(
+                        self.listen_task()
+                    )
+                except Exception as e:
+                    traceback.print_exc()
+                    print(e)
+                    log(f"Failed to run background tasks: {e}", "error")
+            
+                        # Start the async tasks
+            asyncio.run(run_background_tasks())
         except Exception as e:
             traceback.print_exc()
             print(e)
             log(f"Failed to connect to CRAGWorker: {e}", "error")
 
-    def health_check(self):
-        """Send a heartbeat every 10s."""
-        log("CRAGWorker is starting health check thread.", "info")
-        while True:
-            log("CRAGWorker is sending heartbeat.", "info")
-            sendMessage(
-                conn=CRAGWorker.conn,
-                messageId="heartbeat",
-                status="healthy"
-            )
-            time.sleep(10)
     async def listen_task(self):
         print("CRAGWorker is listening for messages...")
         while True:
             try:
-                if CRAGWorker.conn.poll(1):  # Check for messages with 1 second timeout
+            # Change poll(1) to poll(0.1) to reduce blocking time
+                if CRAGWorker.conn.poll(1):  # Shorter timeout
                     message = self.conn.recv()
-                    if(self.isBusy):
-                        print("CRAGWorker is busy, ignoring message.")
+                    log(f"CRAGWorker received messageId :{message['messageId']}", "info")
+                    log(f"CRAGWorker Status busy: {CRAGWorker.isBusy}", "debug")
+                    if(CRAGWorker.isBusy):
+                        log("CRAGWorker is busy, ignoring message.",'error')
                         self.sendToOtherWorker(
                             messageId=message.get("messageId"),
                             destination=message.get("destination", []),
                             data=message.get("data", {}),
-                            status="busy",
-                            reason="CRAGWorker is busy processing another request."
+                            status="failed",
+                            reason="SERVER_BUSY"
                         )
-                        continue
-                    self.isBusy =True
+                        break
+                    CRAGWorker.isBusy =True
                     dest = [
                         d
                         for d in message["destination"]
@@ -218,6 +218,9 @@ class CRAGWorker(Worker):
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(id = param,mId = message.get("messageId"), data = message.get("data", {}))
+                
+                # ADD THIS LINE: Allow other async tasks to run
+                await asyncio.sleep(0.01)
             except EOFError:
                 break
             except Exception as e:
@@ -992,7 +995,7 @@ class CRAGWorker(Worker):
             messageId= str(uuid4())
         )
 
-        log(f"CRAGWorker processing completed successfully. chat_id: {id}", "info")
+        log(f"CRAGWorker processing completed successfully. chat_id: {id}", "success")
         input_evaluasi = {
             "claim": value["generation"],
             "evidence": value["documents"],
@@ -1001,10 +1004,12 @@ class CRAGWorker(Worker):
 
         for output in self.app_evaluasi.stream(input_evaluasi):
             for key, value in output.items():
+                pass
                 # Node
-                pprint(f"Node '{key}':")
-            pprint("\n---\n")
-        log(f"CRAGWorker eval completed successfully. chat_id: {id}", "info")
+        if value['claim']:
+
+            log(f"CRAGWorker eval completed successfully. chat_id: {id}", "success")
+            CRAGWorker.isBusy = False
 
 def main(conn: Connection, config: dict):
     worker = CRAGWorker()

@@ -9,8 +9,9 @@ from multiprocessing.connection import Connection
 import traceback
 from utils.log import log
 from utils.handleMessage import sendMessage,convertMessage
+import psutil
 
-from config.workerConfig import CounterExampleCreatorWorkerConfig, DatabaseInteractionWorkerConfig, LogicalFallacyClassificationWorkerConfig, LogicalFallacyPromptWorkerConfig, SMTConverterWorkerConfig, VectorWorkerConfig, PromptRecommendationWorkerConfig, RabbitMQWorkerConfig, RestApiWorkerConfig, CRAGWorkerConfig
+from config.workerConfig import CounterExampleCreatorWorkerConfig, DatabaseInteractionWorkerConfig, LogicalFallacyClassificationWorkerConfig, LogicalFallacyPromptWorkerConfig, SMTConverterWorkerConfig, VectorWorkerConfig, PromptRecommendationWorkerConfig, RabbitMQWorkerConfig, RestApiWorkerConfig, CRAGWorkerConfig,allConfigs
 #########
 # dont edit this class except worker conf
 #########
@@ -25,12 +26,12 @@ class Supervisor:
         # just edit this part to add your workers
         ####
         
+        self.create_worker("RestApiWorker", count=1, config=RestApiWorkerConfig)
+        self.create_worker("CRAGWorker", count=1, config=CRAGWorkerConfig)
         self.create_worker("DatabaseInteractionWorker", count=1, config=DatabaseInteractionWorkerConfig)
         self.create_worker("VectorWorker", count=1, config=VectorWorkerConfig)
         self.create_worker("PromptRecommendationWorker", count=1, config=PromptRecommendationWorkerConfig)
         self.create_worker("RabbitMQWorker", count=1, config=RabbitMQWorkerConfig)
-        self.create_worker("RestApiWorker", count=1, config=RestApiWorkerConfig)
-        self.create_worker("CRAGWorker", count=1, config=CRAGWorkerConfig)
         self.create_worker("LogicalFallacyPromptWorker", count=1, config=LogicalFallacyPromptWorkerConfig)
         self.create_worker("SMTConverterWorker", count=1, config=SMTConverterWorkerConfig)
         self.create_worker("CounterExampleCreatorWorker", count=1, config=CounterExampleCreatorWorkerConfig)
@@ -59,7 +60,7 @@ class Supervisor:
             p = multiprocessing.Process(
                 target=Supervisor._worker_runner,
                 args=(worker, child_conn, config),  
-                daemon=True
+                daemon=False
             )
             p.start()
             self._workers[p.pid] = {"process": p, "conn": parent_conn, "name": worker}
@@ -90,9 +91,8 @@ class Supervisor:
                     message = conn.recv()
                     self.handle_worker_message(convertMessage(message), pid)
                 except EOFError as e:
-                    traceback.print_exc()
-                    print(e)
-                    log(f"Connection closed for worker {pid}", "warn")
+                    log(f"Worker {pid} connection closed: {e}", "error")
+                    log(f"Connection closed for worker {self._workers[pid]['name']} ({pid})", "warn")
                     break
                 except Exception as e:
                     log(f"Error listening to worker {pid}: {e}", "error")
@@ -107,14 +107,16 @@ class Supervisor:
 
     def check_worker_health(self):
         now = time.time()
-        threshold = 15
-        for pid, health in list(self.workers_health.items()):
-            if health['is_healthy'] and now - health['timestamp'] > threshold:
-                log(f"Worker {pid} not healthy, restarting...", "warn")
+        
+        for pid,metadata in list(self._workers.items()):
+            psutil_pid = psutil.pid_exists(pid)
+            process_status = psutil.Process(pid).status() if psutil_pid else None
+            if not psutil_pid or process_status == psutil.STATUS_ZOMBIE or process_status == psutil.STATUS_DEAD:
+                log(f"Worker {metadata['name']} ({pid}) is not alive, removing from tracking", "warn")
                 self._kill_worker(pid)
-                self.create_worker(health['worker_name'], count=1, config={})
-                del self.workers_health[pid]
-
+                self.create_worker(metadata['name'], count=1, config=allConfigs.get(metadata['name'], {}))
+                
+        
     def handle_worker_message(self, message: dict, pid: int):
         dests = message.get('destination')
         status = message.get('status')
@@ -123,7 +125,9 @@ class Supervisor:
           if dest != 'supervisor':
               self._send_to_worker(dest, message)
               return
-
+        if(status != 'healthy' ):
+            pass
+            # log(f"Handling message from worker {self._workers[pid]['name']}({pid}) with status :{status}", "info")
         # Supervisor-specific handling
         if status == 'healthy':
             instance = message.get('messageId', '')
@@ -136,6 +140,7 @@ class Supervisor:
         elif status == 'completed' and dest:
             worker_name = dest.split('/')[0].split('.')[0]
             self.remove_pending_message(worker_name, msg_id)
+        
 
     def _send_to_worker(self, destination: str, message: dict):
         worker_name = destination.split('/')[0].split('.')[0]
@@ -144,13 +149,14 @@ class Supervisor:
         status = message.get('status')
         reason = message.get('reason')
 
-        log(f"Routing message {msg_id} to {worker_name}", "info")
+        # log(f"Routing message {msg_id} to {worker_name}", "info")
         self.track_pending_message(worker_name, message)
 
         # Find available worker
         available = [w for w in self._workers.values() if w['name'] == worker_name]
         if status == 'failed' and reason == 'SERVER_BUSY':
             # filter out busy
+            log(f"Filtering out busy workers for {worker_name}", "error")
             available = []
 
         if not available:
@@ -162,10 +168,11 @@ class Supervisor:
             return
 
         target = available[0]
+        log(f"Sending message to worker: {worker_name}, PID: {target['process'].pid}, Method: {method}, Message ID: {msg_id}, Status: {status}, Reason: {reason}", "info")
         try:
-            log(f"Sending message to worker: {worker_name}, PID: {target['process'].pid}, Method: {method}, Message ID: {msg_id}, Status: {status}, Reason: {reason}, Size data: {len(message.get('data', {}))}", "info")
+            # log(f"Sending message to worker: {worker_name}, PID: {target['process'].pid}, Method: {method}, Message ID: {msg_id}, Status: {status}, Reason: {reason}, Size data: {len(message.get('data', {}))}", "info")
             target['conn'].send(message)
-            log(f"Sent message {msg_id} to {worker_name} with {method} PID: {target['process'].pid}", "success")
+            # log(f"Sent message {msg_id} to {worker_name} with {method} PID: {target['process'].pid}", "success")
         except Exception as e:
             traceback.print_exc()
             log(f"Failed to send message to worker {worker_name}: {e}", "error")
@@ -208,6 +215,7 @@ class Supervisor:
 
 
 if __name__ == '__main__':
+    
     
     # Add this for Windows multiprocessing support
     multiprocessing.set_start_method('spawn', force=True)
