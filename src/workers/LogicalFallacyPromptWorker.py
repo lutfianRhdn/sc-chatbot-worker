@@ -1,4 +1,5 @@
 import ast
+import asyncio
 import json
 from multiprocessing.connection import Connection
 import os
@@ -50,23 +51,10 @@ class LogicalFallacyPromptWorker(Worker):
         
         #### until this part
         # start background threads *before* blocking server
-        threading.Thread(target=self.listen_task, daemon=True).start()
-        threading.Thread(target=self.health_check, daemon=True).start()
 
-        # asyncio.run(self.listen_task())
-        self.health_check()
+        asyncio.run(self.listen_task())
 
-
-    def health_check(self):
-        """Send a heartbeat every 10s."""
-        while True:
-            sendMessage(
-                conn=LogicalFallacyPromptWorker.conn,
-                messageId="heartbeat",
-                status="healthy"
-            )
-            time.sleep(10)
-    def listen_task(self):
+    async def listen_task(self):
         while True:
             try:
                 if LogicalFallacyPromptWorker.conn.poll(1):  # Check for messages with 1 second timeout
@@ -81,6 +69,7 @@ class LogicalFallacyPromptWorker(Worker):
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(message)
+                    asyncio.sleep(0.1)  # Allow other tasks to run
             except EOFError:
                 break
             except Exception as e:

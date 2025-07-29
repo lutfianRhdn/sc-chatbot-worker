@@ -1,3 +1,4 @@
+import asyncio
 from multiprocessing.connection import Connection
 import os
 import threading
@@ -20,7 +21,7 @@ from pymongo import MongoClient
 import traceback
 import nltk
 # check if nltk data is downloaded, if not download it
-nltk.download('punkt', quiet=True)
+nltk.download('punkt_tab')
 
 from .Worker import Worker
 
@@ -64,23 +65,10 @@ class VectorWorker(Worker):
         
         #### until this part
         # start background threads *before* blocking server
-        threading.Thread(target=self.listen_task, daemon=True).start()
-        threading.Thread(target=self.health_check, daemon=True).start()
+        # threading.Thread(target=self.listen_task, daemon=True).start()
 
-        # asyncio.run(self.listen_task())
-        self.health_check()
-
-
-    def health_check(self):
-        """Send a heartbeat every 10s."""
-        while True:
-            sendMessage(
-                conn=VectorWorker.conn,
-                messageId="heartbeat",
-                status="healthy"
-            )
-            time.sleep(10)
-    def listen_task(self):
+        asyncio.run(self.listen_task())
+    async def listen_task(self):
         while True:
             try:
                 if VectorWorker.conn.poll(1):  # Check for messages with 1 second timeout
@@ -95,6 +83,7 @@ class VectorWorker(Worker):
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(data=message['data'],id=param, message=message)
+                    asyncio.sleep(0.1)  # Add a small sleep to prevent busy waiting
             except EOFError:
                 break
             except Exception as e:

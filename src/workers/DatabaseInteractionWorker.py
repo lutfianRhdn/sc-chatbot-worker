@@ -1,3 +1,4 @@
+import json
 from multiprocessing.connection import Connection
 import os
 
@@ -19,11 +20,12 @@ class DatabaseInteractionWorker(Worker):
   # dont edit this part
   ################
   _instanceId: str    
-  _isBusy: bool = False
+  isBusy: bool = False
   _client: MongoClient 
   _db_name: str 
+  conn: Connection
   def __init__(self, conn: Connection, config: dict):
-    self.conn=conn
+    DatabaseInteractionWorker.conn=conn
     self._db_name = config.get("database", "mydatabase") 
     self._dbTweets = config.get("dbTweets", "dataGathering")
     self.connection_string = config.get("connection_string", "mongodb://localhost:27017/") 
@@ -41,51 +43,69 @@ class DatabaseInteractionWorker(Worker):
       log("Failed to connect to MongoDB", "error")
     self._client.server_info()  # This will raise an exception if the connection fails
     log(f"Connected to MongoDB at {self.connection_string}", "success")
-    asyncio.run(self.listen_task())
-    self.health_check()
-
-  
-  def health_check(self) -> None:
-    while True :
-      pass
-      sendMessage(conn=self.conn,messageId=self._instanceId, status="healthy")
-      time.sleep(10)
-  
-  async def listen_task(self) -> None:
-    while True:
+    async def run_background_tasks():
       try:
-          if self.conn.poll(1):  # Check for messages with 1 second timeout
-              message = self.conn.recv()
-              dest = [
-                  d
-                  for d in message["destination"]
-                  if d.split("/", 1)[0] == "DatabaseInteractionWorker"
-              ]
-              # dest = [d for d in message['destination'] if d ='DatabaseInteractionWorker']
-              destSplited = dest[0].split('/')
-              method = destSplited[1]
-              param= destSplited[2]
-              instance_method = getattr(self,method)
-              # print(f"Calling method: {method} with param: {param} and data: {message.get('data', {})}")
-              result = instance_method(id=param, data=message.get("data", {}))
-              # print(result)
-              print(f"Result from {method} with length {len(result.get('data', []))} and destination {result.get('destination', [])}")
-              sendMessage(
-                  conn=self.conn, 
-                  status="completed",
-                  destination=result["destination"],
-                  messageId=message["messageId"],
-                  data=convertObjectIdToStr(result.get('data', [])),
-              )
-      except EOFError:
-          log("Connection closed by supervisor",'error')
-          break
+          # Run both health_check and listen_task concurrently
+          await asyncio.gather(
+              self.listen_task()
+          )
       except Exception as e:
           traceback.print_exc()
           print(e)
-          log(f"Message loop error: {e}",'error')
-          break
-  0
+          log(f"Failed to run background tasks: {e}", "error")
+
+                # Start the async tasks
+    asyncio.run(run_background_tasks())
+
+  
+  async def listen_task(self):
+      print("DatabaseInteractionWorker is listening for messages...")
+      while True:
+        try:
+        # Change poll(1) to poll(0.1) to reduce blocking time
+          if DatabaseInteractionWorker.conn.poll(0.1):  # Shorter timeout
+            message = self.conn.recv()
+            if(self.isBusy):
+                print("DatabaseInteractionWorker is busy, ignoring message.")
+                self.sendToOtherWorker(
+                    messageId=message.get("messageId"),
+                    destination=message.get("destination", []),
+                    data=message.get("data", {}),
+                    status="failed",
+                    reason="SERVER_BUSY"
+                )
+                continue
+            self.isBusy =True
+            dest = [
+                d
+                for d in message["destination"]
+                if d.split("/", 1)[0] == "DatabaseInteractionWorker"
+            ]
+            destSplited = dest[0].split('/')
+            method = destSplited[1]
+            param= destSplited[2]
+            instance_method = getattr(self,method)
+            result = instance_method(id = param, data = message.get("data", {}))
+              
+            sendMessage(
+                conn=self.conn, 
+                status="completed",
+                destination=result["destination"],
+                messageId=message["messageId"],
+                data=convertObjectIdToStr(result.get('data', [])),
+            )
+            self.isBusy = False
+      
+        except EOFError:
+            log("Connection closed by supervisor",'error')
+            break
+        except Exception as e:
+            traceback.print_exc()
+            print(e)
+            log(f"Message loop error: {e}",'error')
+            break
+        await asyncio.sleep(0.1)  # Sleep to prevent busy-waiting
+  
   #########################################
   # Methods for Database Interaction
   #########################################
@@ -180,7 +200,29 @@ class DatabaseInteractionWorker(Worker):
     return {"data":[{"_id":created.inserted_id}],"destination":["RestApiWorker/onProcessed/"]}
 
     
-    
+  def getProgress(self,id,data):
+    # print(f"Fetching progress for id: {id}")
+    process_name = data['process_name'] if 'process_name' in data else ''
+    # print(f"Process name: {process_name}")
+    query = {"_id": ObjectId(id)}
+    if process_name:
+      query['process.process_name'] = process_name
+    # print(f"Query: {query}")
+    message = self._db['history'].find_one(query)
+    # print(f"Found message: {message}")
+    if not message:
+      print(f"No message found with id: {id}")
+      return {"data": [], "destination": ["RestApiWorker/onProcessed/"]}
+    process_list = message.get('process', [])
+    # print(f"Process list: {process_list}")
+    if process_name:
+      process_list = [p for p in process_list if p['process_name'] == process_name]
+      # print(f"Filtered process list: {process_list}")
+    if not process_list:
+      print(f"No process found with name: {process_name}")
+    return {"data": list(process_list), "destination": ["RestApiWorker/onProcessed/"]}
+  
+  
   def createNewProgress(self,id,data):
     process_name = data.get('process_name', '')
     input = data.get('input', '')
@@ -249,7 +291,6 @@ class DatabaseInteractionWorker(Worker):
       process_found = False
       for process in process_list:
           if process['process_name'] == process_name:
-              print(f"Process {process_name} found, updating sub-process.")
               # print(f"Sub-process name: {sub_process_name}, Input: {input}, Output: {output}")
               process['sub_process'].append({
                   "sub_process_name": sub_process_name,
@@ -297,8 +338,9 @@ class DatabaseInteractionWorker(Worker):
 def convertObjectIdToStr(data: list) -> list:
    res =[]
    for doc in data:
+    if("_id" in doc and isinstance(doc["_id"], ObjectId)):
       doc["_id"] = str(doc["_id"])
-      res.append(doc)
+    res.append(doc)
    return res
 # This is the main function that the supervisor calls
 

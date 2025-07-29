@@ -87,3 +87,17 @@ LogicalFallacyClassificationWorkerConfig={
     "azure_openai_deployment_name": azure['deployment_name']['api'],
     "azure_openai_api_version": azure['api_version']['api']
 }
+
+
+allConfigs = {
+    "DatabaseInteractionWorker": DatabaseInteractionWorkerConfig,
+    "VectorWorker": VectorWorkerConfig,
+    "PromptRecommendationWorker": PromptRecommendationWorkerConfig,
+    "RabbitMQWorker": RabbitMQWorkerConfig,
+    "RestApiWorker": RestApiWorkerConfig,
+    "CRAGWorker": CRAGWorkerConfig,
+    "LogicalFallacyPromptWorker": LogicalFallacyPromptWorkerConfig,
+    "SMTConverterWorker": SMTConverterWorkerConfig,
+    "CounterExampleCreatorWorker": CounterExampleCreatorWorkerConfig,
+    "LogicalFallacyClassificationWorker": LogicalFallacyClassificationWorkerConfig
+}

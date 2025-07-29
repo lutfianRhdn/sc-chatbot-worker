@@ -45,7 +45,7 @@ from prompt.PromptExtract import prompt_extrac
 from prompt.GenerateAnswer import prompt
 from utils.state import GraphState
 import nltk
-nltk.download('punkt', quiet=True)
+nltk.download('punkt_tab')
 
 
 class CRAGWorker(Worker):
@@ -55,6 +55,7 @@ class CRAGWorker(Worker):
     route_base = "/"
     conn:Connection
     requests: dict = {}
+    isBusy: bool = False
     process_name: str = "Reduce information hallucinations by applying CRAG."
     def __init__(self):
         # we'll assign these in run()
@@ -67,6 +68,9 @@ class CRAGWorker(Worker):
             # assign here
             CRAGWorker.conn = conn
 
+            #### until this part
+              # start background threads *before* blocking server
+           
             #### add your worker initialization code here
             self.conn=conn
             self._db_name = config.get("database", "mydatabase") 
@@ -166,36 +170,44 @@ class CRAGWorker(Worker):
 
             self.app_evaluasi = workflow_evaluasi.compile()
             print('CRAGWorker initialized successfully.')
-
-            #### until this part
-            # start background threads *before* blocking server
-            # threading.Thread(target=self.listen_task, daemon=True).start()
-            # threading.Thread(target=self.health_check, daemon=True).start()
-
-            asyncio.run(self.listen_task())
-            self.health_check()
+            async def run_background_tasks():
+                try:
+                    # Run both health_check and listen_task concurrently
+                    await asyncio.gather(
+                        self.listen_task()
+                    )
+                except Exception as e:
+                    traceback.print_exc()
+                    print(e)
+                    log(f"Failed to run background tasks: {e}", "error")
+            
+                        # Start the async tasks
+            asyncio.run(run_background_tasks())
         except Exception as e:
             traceback.print_exc()
             print(e)
             log(f"Failed to connect to CRAGWorker: {e}", "error")
 
-    def health_check(self):
-        """Send a heartbeat every 10s."""
-        log("CRAGWorker is starting health check thread.", "info")
-        while True:
-            log("CRAGWorker is sending heartbeat.", "info")
-            sendMessage(
-                conn=CRAGWorker.conn,
-                messageId="heartbeat",
-                status="healthy"
-            )
-            time.sleep(10)
-   async def listen_task(self):
+    async def listen_task(self):
         print("CRAGWorker is listening for messages...")
         while True:
             try:
-                if CRAGWorker.conn.poll(1):  # Check for messages with 1 second timeout
+            # Change poll(1) to poll(0.1) to reduce blocking time
+                if CRAGWorker.conn.poll(1):  # Shorter timeout
                     message = self.conn.recv()
+                    log(f"CRAGWorker received messageId :{message['messageId']}", "info")
+                    log(f"CRAGWorker Status busy: {CRAGWorker.isBusy}", "debug")
+                    if(CRAGWorker.isBusy):
+                        log("CRAGWorker is busy, ignoring message.",'error')
+                        self.sendToOtherWorker(
+                            messageId=message.get("messageId"),
+                            destination=message.get("destination", []),
+                            data=message.get("data", {}),
+                            status="failed",
+                            reason="SERVER_BUSY"
+                        )
+                        break
+                    CRAGWorker.isBusy =True
                     dest = [
                         d
                         for d in message["destination"]
@@ -206,6 +218,9 @@ class CRAGWorker(Worker):
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(id = param,mId = message.get("messageId"), data = message.get("data", {}))
+                
+                # ADD THIS LINE: Allow other async tasks to run
+                await asyncio.sleep(0.01)
             except EOFError:
                 break
             except Exception as e:
@@ -966,42 +981,21 @@ class CRAGWorker(Worker):
         inputs = {"question": data['prompt']}
         for output in self.app.stream(inputs):
             for key, value in output.items():
-                # Node
-                pprint(f"Node '{key}':")
-                # Optional: print full state at each node
-                # pprint.pprint(value["keys"], indent=2, width=80, depth=None)
-            # pprint("\n---\n")
-
-        # Final generation
+                pass
         final_response = value["generation"]
-        # print(value["generation"])
-        # text = self.casefoldingText("Halo, ini adalah contoh teks untuk diolah.")
-        # text = self.cleaningText(text)
-        # text = self.tokenizingText(text)
-        # path_slang = "H:/My Drive/UNIKOM/Skripsi/Code/Socialabs/socialabs-chatbot/kamus/slang.xlsx"
-        # if not os.path.exists(path_slang):
-        #     print("slang not found, using default path")
-
-        # df_slang = pd.read_excel(os.path.abspath(path_slang))
-        # slang_dict = dict(zip(df_slang['slang'], df_slang['formal']))
-        # text = self.normalize_text(' '.join(text), slang_dict)
-        # print(text)
-
-        
-        
-
+       
 
 
         self.sendToOtherWorker(
             destination=[f"DatabaseInteractionWorker/updateOutputProcess/{id}"],
             data={
                 "process_name": self.process_name,
-                "output": value["generation"],
+                "output": final_response,
             },
             messageId= str(uuid4())
         )
 
-
+        log(f"CRAGWorker processing completed successfully. chat_id: {id}", "success")
         input_evaluasi = {
             "claim": value["generation"],
             "evidence": value["documents"],
@@ -1010,29 +1004,12 @@ class CRAGWorker(Worker):
 
         for output in self.app_evaluasi.stream(input_evaluasi):
             for key, value in output.items():
+                pass
                 # Node
-                pprint(f"Node '{key}':")
-                # Optional: print full state at each node
-                # pprint.pprint(value["keys"], indent=2, width=80, depth=None)
-            pprint("\n---\n")
+        if value['claim']:
 
-
-        #send back to RestAPI
-        self.sendToOtherWorker(
-          messageId=mId,
-          destination=["RestApiWorker/onProcessed"],
-          data= final_response
-
-          )
-        
-      #   sendMessage(
-      #     status="completed",
-      #     reason="Test method executed successfully.",
-      #     destination=["supervisor"],
-      #     data={"message": "This is a test response."}
-      # )
-        # log("Test method called", "info")
-        # return {"status": "success", "data": "This is a test response."}
+            log(f"CRAGWorker eval completed successfully. chat_id: {id}", "success")
+            CRAGWorker.isBusy = False
 
 def main(conn: Connection, config: dict):
     worker = CRAGWorker()

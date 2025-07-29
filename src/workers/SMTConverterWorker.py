@@ -1,4 +1,5 @@
 from ast import Tuple
+import asyncio
 import subprocess
 from multiprocessing.connection import Connection
 import os
@@ -41,22 +42,8 @@ class SMTConverterWorker(Worker):
         
         #### until this part
         # start background threads *before* blocking server
-        threading.Thread(target=self.listen_task, daemon=True).start()
-        threading.Thread(target=self.health_check, daemon=True).start()
 
-        # asyncio.run(self.listen_task())
-        self.health_check()
-
-
-    def health_check(self):
-        """Send a heartbeat every 10s."""
-        while True:
-            sendMessage(
-                conn=SMTConverterWorker.conn,
-                messageId="heartbeat",
-                status="healthy"
-            )
-            time.sleep(10)
+        asyncio.run(self.listen_task())
     def listen_task(self):
         while True:
             try:
@@ -72,6 +59,7 @@ class SMTConverterWorker(Worker):
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(message)
+                    asyncio.sleep(0.1)  # Allow other tasks to run
             except EOFError:
                 break
             except Exception as e:
