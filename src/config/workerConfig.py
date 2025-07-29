@@ -63,6 +63,13 @@ LogicalFallacyPromptWorkerConfig={
     "azure_openai_api_version": azure['api_version']['api']
 }
 
+LogicalFallacyResponseWorkerConfig={
+    "azure_openai_api_key": azure['api_key'],
+    "azure_openai_endpoint": azure['endpoint'],
+    "azure_openai_deployment_name": azure['deployment_name']['api'],
+    "azure_openai_api_version": azure['api_version']['api']
+}
+
 SMTConverterWorkerConfig={
     "":""
 }

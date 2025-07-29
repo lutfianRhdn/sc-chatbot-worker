@@ -11,7 +11,8 @@ from utils.log import log
 from utils.handleMessage import sendMessage,convertMessage
 import psutil
 
-from config.workerConfig import CounterExampleCreatorWorkerConfig, DatabaseInteractionWorkerConfig, LogicalFallacyClassificationWorkerConfig, LogicalFallacyPromptWorkerConfig, SMTConverterWorkerConfig, VectorWorkerConfig, PromptRecommendationWorkerConfig, RabbitMQWorkerConfig, RestApiWorkerConfig, CRAGWorkerConfig,allConfigs
+from config.workerConfig import CounterExampleCreatorWorkerConfig, DatabaseInteractionWorkerConfig, LogicalFallacyClassificationWorkerConfig, LogicalFallacyPromptWorkerConfig, LogicalFallacyResponseWorkerConfig,allConfigs, SMTConverterWorkerConfig, VectorWorkerConfig, PromptRecommendationWorkerConfig, RabbitMQWorkerConfig, RestApiWorkerConfig, CRAGWorkerConfig
+
 #########
 # dont edit this class except worker conf
 #########
@@ -25,7 +26,7 @@ class Supervisor:
         ####
         # just edit this part to add your workers
         ####
-        
+ 
         self.create_worker("RestApiWorker", count=1, config=RestApiWorkerConfig)
         self.create_worker("CRAGWorker", count=1, config=CRAGWorkerConfig)
         self.create_worker("DatabaseInteractionWorker", count=1, config=DatabaseInteractionWorkerConfig)
@@ -36,6 +37,8 @@ class Supervisor:
         self.create_worker("SMTConverterWorker", count=1, config=SMTConverterWorkerConfig)
         self.create_worker("CounterExampleCreatorWorker", count=1, config=CounterExampleCreatorWorkerConfig)
         self.create_worker("LogicalFallacyClassificationWorker", count=1, config=LogicalFallacyClassificationWorkerConfig)
+
+        self.create_worker("LogicalFallacyResponseWorker", count=1, config=LogicalFallacyResponseWorkerConfig)
 
         ####
         # until this part

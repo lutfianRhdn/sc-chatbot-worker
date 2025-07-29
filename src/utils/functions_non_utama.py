@@ -2,11 +2,12 @@ from openai import AzureOpenAI
 import pandas as pd 
 import re
 import subprocess
-from cvc import CVCGenerator
+from utils.cvc import CVCGenerator
 import json
 from groq import Groq
 import re
 from openai import OpenAI
+import os
 
 
 def remove_json_text(text):
@@ -17,12 +18,9 @@ def remove_json_text(text):
 
 def llm(prompt):
     client = AzureOpenAI(
-        # azure_endpoint = "endpoint", 
-        # api_key="key",  
-        # api_version="version"
         azure_endpoint = "endpoint", 
         api_key="key",  
-        api_version="version"
+        api_version="api-version"
         )
 
     response = client.chat.completions.create(
@@ -37,8 +35,8 @@ def llm(prompt):
 
 def llm_qwen(prompt):
     client = OpenAI(
-        base_url="baseurl",
-        api_key="api_keys",
+        base_url="base_url",
+        api_key="key",
     )
 
     completion = client.chat.completions.create(
@@ -94,7 +92,9 @@ def get_counter_example(fol_keseluruhan):
             f.write(script)
 
         # Menjalankan CVC5 solver dan menangkap output
-        proc = subprocess.run([r"src\cvc5\bin\cvc5", "--lang", "smt2", "logical_form.smt2"], capture_output=True, text=True, check=True)
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        cvc5_path = os.path.join(base_path,'../cvc5/unix/bin/cvc5')
+        proc = subprocess.run([cvc5_path, "--lang", "smt2", "logical_form.smt2"], capture_output=True, text=True, check=True)
         proc_result = proc.stdout
 
         # Menyimpan hasil output solver ke file
@@ -111,7 +111,9 @@ def load_prompt_template(filename):
     """Load prompt template from JSON file"""
     # print(f"Loading prompt template from {filename}")
     try:
-        with open(f'src/aziz/prompts/{filename}', 'r', encoding='utf-8') as f:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        json_file_path = os.path.join(base_path, '../prompt', filename)
+        with open(json_file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
         return {"template": "", "variables": []}

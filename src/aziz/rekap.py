@@ -1,11 +1,5 @@
-# FLASK 
-from flask import Flask, request, jsonify
-from flask_cors import CORS
 from function_utama import function_transformasi_respons_chatbot_ke_fol, function_pembuatan_counter_example, function_klasifikasi_logical_fallacies, function_perbaikan_respons_chatbot, function_analisis_thematic_progression
 from functions_non_utama import llm, load_prompt_template, fix_json_if_incomplete
-
-app = Flask(__name__)
-CORS(app)   
 
 def modify_respons(respons):
     transformasi_respons_chatbot_ke_fol = function_transformasi_respons_chatbot_ke_fol(respons)
@@ -26,49 +20,30 @@ def modify_respons(respons):
     print(identifikasi_thematic_progression)
     return transformasi_respons_chatbot_ke_fol, pembuatan_counter_example, klasifikasi_logical_fallacy, identifikasi_thematic_progression, modifikasi_respons_chatbot
 
+import pandas as pd
 
-@app.route('/lfu', methods=['POST'])
-def logical_fallacy_understanding():
-    try:
-        # Mendapatkan data respons chatbot dari request
-        data = request.json
-        respons_chatbot = data.get('respons_chatbot')
+data = pd.read_excel(r"D:\Kuliah\SKRIPSI\Sidang\socialabs-chatbot\src\aziz\log_percakapan.xlsx")
+jawabans = data['jawaban']
 
-        # Proses logic fallacy understanding
-        transformasi_respons_chatbot_ke_fol, pembuatan_counter_example, klasifikasi_logical_fallacy, identifikasi_thematic_progression, modifikasi_respons_chatbot = modify_respons(respons_chatbot)
-        # END
+fols = []
+smts = []
+klasifikasi_logical_fallacies = []
+modifikasis = []
+jawabans_saat_ini = []
+i = 1
+for jawaban in jawabans[8:9]:
+    # Proses logic fallacy understanding
+    transformasi_respons_chatbot_ke_fol, pembuatan_counter_example, klasifikasi_logical_fallacy, identifikasi_thematic_progression, modifikasi_respons_chatbot = modify_respons(jawaban)
+    # END
 
-        import os
+    fols.append(transformasi_respons_chatbot_ke_fol['chain_4']['fol'])
+    smts.append(pembuatan_counter_example['hasil_smt_solver'][:7])
+    klasifikasi_logical_fallacies.append(klasifikasi_logical_fallacy['jenis'])
+    modifikasis.append(modifikasi_respons_chatbot['kalimat_keseluruhan'])
+    jawabans_saat_ini.append(jawaban)
+    
+    print(f"-------- {i} ----------")
+    i += 1
 
-        # Menghapus file tunggal
-        try:
-            os.remove(r"D:\Kuliah\SKRIPSI\Sidang\socialabs-chatbot\logical_form.smt2")
-            os.remove(r"D:\Kuliah\SKRIPSI\Sidang\socialabs-chatbot\logical_form.out")
-            print("File berhasil dihapus")
-        except FileNotFoundError:
-            print("File tidak ditemukan")
-        except PermissionError:
-            print("Tidak memiliki izin untuk menghapus file")
-        except Exception as e:
-            print(f"Error: {e}")
-
-        return jsonify({
-            'chain_1': transformasi_respons_chatbot_ke_fol['chain_1'],
-            'chain_2': transformasi_respons_chatbot_ke_fol['chain_2'],
-            'chain_3': transformasi_respons_chatbot_ke_fol['chain_3']['atomic_formula'],
-            'chain_4': transformasi_respons_chatbot_ke_fol['chain_4']['fol'],
-            'pembuatan_counter_example': pembuatan_counter_example,
-            'klasifikasi_logical_fallacy': klasifikasi_logical_fallacy,
-            'Problems TP': identifikasi_thematic_progression['identifikasi_masalah_thematic_progression'],
-            'modifikasi_respons_chatbot': modifikasi_respons_chatbot
-        })
-        
-
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        })
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    # hasil = pd.DataFrame({'jawababn': jawabans_saat_ini, 'fol': fols, 'smt': smts, 'klasifikasi_logical_fallacy': klasifikasi_logical_fallacies, 'perbaikan': modifikasis})
+    # hasil.to_excel("Rekap Perbaikan Aziz.xlsx", index=False)

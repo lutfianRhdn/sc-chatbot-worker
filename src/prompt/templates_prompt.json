@@ -1,0 +1,14 @@
+{  
+    "instructions": {    
+        "task": "",
+        "persona": "",
+        "method": "",
+        "output_format": "",    
+        "handling_unknown": ""  
+    },  
+    "context": {    
+        "examples": [],
+        "relevant_information": {},
+        "input_queries": {}
+    }
+}
