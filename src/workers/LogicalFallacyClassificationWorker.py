@@ -106,7 +106,6 @@ class LogicalFallacyClassificationWorker(Worker):
         llm_response = response.choices[0].message.content.strip()
         parsed = json.loads(llm_response)
         
-        # print("Raw response:", parsed)
         if message['data']['is_eval'] == False:
             self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
@@ -128,26 +127,13 @@ class LogicalFallacyClassificationWorker(Worker):
                 },
                 messageId=(str(uuid.uuid4()))
             )
-
+        message['data']['fallacy_type'] = parsed.get("fallacy_type", "Unknown")
+        message['data']['fallacy_location'] = parsed.get("fallacy_location", {})
+        message['data']['feedback'] = parsed.get("feedback", "Tidak ada feedback.")
         self.sendToOtherWorker(
             messageId=message.get("messageId"),
-            destination=["LogicalFallacyPromptWorker/logical_fallacy_prompt_modification/"],
-            data={
-                "premis":premis,
-                "kesimpulan":kesimpulan,
-                "prompt":prompt,
-                "fallacy_type":parsed.get("fallacy_type", "Unknown"),
-                "fallacy_location":parsed.get("fallacy_location", {}),
-                "feedback":parsed.get("feedback", "Tidak ada feedback."),
-                "feedback_intent":message["data"]["feedback"],
-                "is_eval":message["data"]["is_eval"],
-                "user_intent": message["data"]["user_intent"],
-                "eval_iteration" : message["data"]["eval_iteration"],
-                "prompt_user" : message["data"]["prompt_user"],
-                "chat_id" : message["data"]["chat_id"],
-                "process_name" : message["data"]["process_name"],
-                "latest_intent" : message["data"]["latest_intent"]
-            }
+            destination=["LogicalFallacyPromptWorker/logical_fallacy_prompt_modification/" if message['data']['type'] == 'prompt' else "LogicalFallacyResponseWorker/logical_fallacy_prompt_modification/"], 
+            data=message['data']
             )        
  
         
@@ -157,6 +143,7 @@ class LogicalFallacyClassificationWorker(Worker):
         kesimpulan = message["data"]["kesimpulan"]
         interpretasi = message["data"]["interpretasi"]
         prompt = message["data"]["prompt"]
+        log("prepare_classification, 📝 Memulai klasifikasi logical fallacy.", "info")
 
         base_path = os.path.dirname(os.path.abspath(__file__))
         fallacy_path = os.path.join(base_path, "../fallacy/fallacy.csv")        

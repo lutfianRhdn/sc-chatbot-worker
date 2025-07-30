@@ -10,7 +10,6 @@ class Worker(ABC):
         """
         raise NotImplementedError
 
-
     @abstractmethod
     async def listen_task(self) -> None:
         """

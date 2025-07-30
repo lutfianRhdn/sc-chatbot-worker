@@ -34,17 +34,16 @@ class RestApiWorker(FlaskView, Worker):
         # assign here
         RestApiWorker.conn = conn
         self._port = port
-
-        RestApiWorker.register(app)
         def run_listen_task():
             asyncio.run(self.listen_task())
+        threading.Thread(target=run_listen_task, daemon=True).start()
+
+        RestApiWorker.register(app)
         
 
-        # start background threads *before* blocking server
-        threading.Thread(target=run_listen_task, daemon=False).start()
-
         app.run(debug=True, port=self._port, use_reloader=False,host="0.0.0.0")
-       
+        # asyncio.run(self.listen_task()) 
+
 
             
     async def listen_task(self):
@@ -52,12 +51,13 @@ class RestApiWorker(FlaskView, Worker):
         while True:
             try:
             # Change poll(1) to poll(0.1) to reduce blocking time
-                if RestApiWorker.conn.poll(0.1):  # Shorter timeout
+                if RestApiWorker.conn.poll(1):  # Shorter timeout
                     message = self.conn.recv()
+                    print('recived message')
                     # if(self.isBusy):
                     #     print("CRAGWorker is busy, ignoring message.")
                     #     self.sendToOtherWorker(
-                    #         messageId=message.get("messageId"),
+                    #         messageId=message.get("messageId")    ,
                     #         destination=message.get("destination", []),
                     #         data=message.get("data", {}),
                     #         status="failed",
@@ -84,19 +84,7 @@ class RestApiWorker(FlaskView, Worker):
               log(f"Listener error: {e}",'error' )
               break
 
-    def listen_task(self):
-        while True:
-            try:
-                if RestApiWorker.conn.poll(0.1):  # Check for messages with 1 second timeout
-                    raw = RestApiWorker.conn.recv()
-                    # print(raw)
-                    msg = convertMessage(raw)
-                    self.onProcessed(raw)
-            except EOFError:
-                break
-            except Exception as e:
-                log(f"Listener error: {e}",'error' )
-                break
+    
 
     def onProcessed(self, msg):
         """
@@ -276,22 +264,25 @@ class RestApiWorker(FlaskView, Worker):
         A test route to send a message to another worker.
         """
         projectId = request.json.get('projectId')
-        respons = request.json.get('respons')
-      
-        # message = self.sendToOtherWorker(
-        #         destination=["DatabaseInteractionWorker/createNewHistory/"],
-        #         data={
-        #             "question": respons,
-        #             "projectId": projectId
-        #         }
-        #     )
-        # id = message.get("result", [{}])[0].get("_id", "unknown_id")
+        respons = request.json.get('response')
         
-        self.sendToOtherWorker(
+        message = self.sendToOtherWorker(
+            destination=["DatabaseInteractionWorker/createNewHistory/"],
+            data={
+                "question": respons,
+                "projectId": projectId
+            }
+        )
+        id = message.get("result", [{}])[0].get("_id", "unknown_id")
+
+        sendMessage(
+        conn=RestApiWorker.conn,
+        messageId=id,
+        status="complated",
             destination=["LogicalFallacyResponseWorker/removeLFResponse/"],
             data={
-                "respons":respons,
-                # "id": id
+                "response":respons,
+                "chat_id": id
             }
         )
         return jsonify({

@@ -3,6 +3,7 @@ from multiprocessing.connection import Connection
 import threading
 import uuid
 import time
+from utils.loadPromptTemplate import load_prompt_template
 from  utils.log import log 
 from utils.handleMessage import sendMessage, convertMessage
 from openai import AzureOpenAI
@@ -89,27 +90,37 @@ class CounterExampleCreatorWorker(Worker):
         terms_kesimpulan = message["data"]['terms_kesimpulan']
         predikat = message["data"]['predikat']
         fol = message["data"]['fol']
-        # print(message)
+
         if not isinstance(model, str) or not model.strip():
             print("interpretasi_counterexample, ❌ Counterexample tidak valid atau kosong.")
         
         if 'prompt_interpretation_template' not in globals():
             print("interpretasi_counterexample, ❌ Template interpretasi tidak ditemukan.")
-
         try:
-            # Isi prompt dengan data
+            if( message['data']['type'] =='prompt'):
+                filled_prompt = prompt_interpretation_template.format(
+                    kalimat=prompt_pengguna,
+                    premis=json.dumps(premis),
+                    kesimpulan=kesimpulan,
+                    terms_premis=json.dumps(terms_premis),
+                    terms_kesimpulan=json.dumps(terms_kesimpulan),
+                    predikat=json.dumps(predikat),
+                    fol=fol.replace('"', '\\"'),
+                    counterexample=model.replace('"', '\\"')
+                )
+            else: 
+                prompt = load_prompt_template("interpretasi_counter_example.json")
+                prompt['context']['relevant_information']['respons_chatbot'] = prompt_pengguna
+                prompt['context']['relevant_information']['premis'] = premis
+                prompt['context']['relevant_information']['kesimpulan'] = kesimpulan
+                prompt['context']['relevant_information']['terms_premis'] = terms_premis
+                prompt['context']['relevant_information']['terms_kesimpulan'] = terms_kesimpulan
+                prompt['context']['relevant_information']['atomic_formula'] = predikat
+                prompt['context']['relevant_information']['fol'] = fol
+                prompt['context']['input_queries']['hasil_smt_solver'] = model
 
-            filled_prompt = prompt_interpretation_template.format(
-                kalimat=prompt_pengguna,
-                premis=json.dumps(premis),
-                kesimpulan=kesimpulan,
-                terms_premis=json.dumps(terms_premis),
-                terms_kesimpulan=json.dumps(terms_kesimpulan),
-                predikat=json.dumps(predikat),
-                fol=fol.replace('"', '\\"'),
-                counterexample=model.replace('"', '\\"')
-            )
-
+                filled_prompt = json.dumps(prompt, indent=4)
+            log("interpretasi_counterexample, 📝 Mengirim prompt ke LLM untuk interpretasi counterexample.", "info")
             # Panggil LLM
             response = self.client.chat.completions.create(
                 model= self.model_name,
@@ -119,53 +130,42 @@ class CounterExampleCreatorWorker(Worker):
                 ]
             )
             hasil = response.choices[0].message.content.strip()
+            print("interpretasi_counterexample, 📝 Hasil dari LLM:", hasil)
             try:
                 if hasil.startswith("```json"):
                     hasil = hasil.replace("```json","")
                     hasil = hasil.replace("```","")
                 result_json = json.loads(hasil)
-                # print(hasil)
+                print("interpretasi_counterexample, 📝 Hasil JSON yang di-parse:", result_json)
+                    
+                message['data']['interpretasi']= result_json["interpretasi_counter_example"] if "interpretasi_counter_example" in result_json else result_json["interpretasi_counterexample"]
+                log("interpretasi_counterexample, ✅ Interpretasi counterexample berhasil dibuat.", "info")
                 if message['data']['is_eval'] == False:
                     self.sendToOtherWorker(
-                        destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
-                        data={
-                            "process_name": message["data"]["process_name"],
-                            "sub_process_name": "Counterexample Interpretation",
-                            "input": {
-                                "prompt" : prompt_pengguna,
-                                "premis" : json.dumps(premis),
-                                "kesimpulan" : kesimpulan,
-                                "terms_premis" : json.dumps(terms_premis),
-                                "terms_kesimpulan" : json.dumps(terms_kesimpulan),
-                                "predikat" : json.dumps(predikat),
-                                "fol" : fol.replace('"', '\\"'),
-                                "model" : model
+                            destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                            data={
+                                "process_name": message["data"]["process_name"],
+                                "sub_process_name": "Counterexample Interpretation",
+                                "input": {
+                                    "model": model,
+                                    "prompt": prompt_pengguna,
+                                    "premis": premis,
+                                    "kesimpulan": kesimpulan,
+                                    "terms_premis": terms_premis,
+                                    "terms_kesimpulan": terms_kesimpulan,
+                                    "predikat": predikat,
+                                    "fol": fol,
+                                    },
+                                "output": message['data']['interpretasi'],
                             },
-                            "output": result_json["interpretasi_counterexample"],
-                        },
-                        messageId=(str(uuid.uuid4()))
-                    )
-                    
+                            messageId=(str(uuid.uuid4()))
+                        )
                 self.sendToOtherWorker(
                         messageId=message.get("messageId"),
                         destination=["LogicalFallacyClassificationWorker/prepare_classification/"],
-                        data={
-                            "interpretasi":result_json["interpretasi_counterexample"],
-                            "premis":premis,
-                            "kesimpulan":kesimpulan,
-                            "prompt":prompt_pengguna,
-                            "feedback": message["data"]["feedback"],
-                            "is_eval": message["data"]["is_eval"],
-                            "user_intent": message["data"]["user_intent"],
-                            "eval_iteration" : message["data"]["eval_iteration"],
-                            "prompt_user" : message["data"]["prompt_user"],
-                            "chat_id" : message["data"]["chat_id"],
-                            "process_name" : message["data"]["process_name"],
-                            "latest_intent" : message["data"]["latest_intent"]
-                        }
+                        data=message['data']
                         )
 
-                return result_json
             except json.JSONDecodeError:
                 print("❌ Gagal parsing JSON. Isi respon:\n", hasil)
                 return {

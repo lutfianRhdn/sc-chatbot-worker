@@ -237,13 +237,13 @@ class LogicalFallacyPromptWorker(Worker):
             fallacy_location = message["data"]["fallacy_location"]    
             feedback = message["data"]["feedback"]
             
-            feedback_intent = message["data"]["feedback_intent"]
-            is_eval = message["data"]["is_eval"]
-            user_intent = message["data"]["user_intent"]
-            prompt_user = message["data"]["prompt_user"]
-            latest_intent = message["data"]["latest_intent"]
+            feedback_intent = message["data"]["feedback_intent"] if "feedback_intent" in message["data"] else None
+            is_eval = message["data"]["is_eval"] if "is_eval" in message["data"] else False
+            user_intent = message["data"]["user_intent"] if "user_intent" in message["data"] else None
+            prompt_user = message["data"]["prompt_user"] if "prompt_user" in message["data"] else None
+            latest_intent = message["data"]["latest_intent"] if "latest_intent" in message["data"] else None
 
-            eval_iteration = message["data"]["eval_iteration"]      
+            eval_iteration = message["data"]["eval_iteration"]  if "eval_iteration" in message["data"] else 0
             # print(eval_iteration, fallacy_type)
             # print(feedback_intent)
             
@@ -458,23 +458,7 @@ class LogicalFallacyPromptWorker(Worker):
         atomic_formula_premis = transformasi_fol.get("atomic_formula_premis", "atomic formula premis tidak ditemukan")
         atomic_formula_kesimpulan = transformasi_fol.get("atomic_formula_kesimpulan", "atomic formula kesimpulan tidak ditemukan")
         predikat = transformasi_fol.get("predikat", "predikat tidak ditemukan")
-        # self.sendToOtherWorker(
-        #     destination=[f"DatabaseInteractionWorker/updateOutputProcess/{chat_id}"],
-        #     data={
-        #         "process_name": process_name,
-                # "output": {
-                #     "fol": fol,
-                #     "premis": premis,
-                #     "kesimpulan": kesimpulan,
-                #     "term_premis": term_premis,
-                #     "term_premis": term_premis,
-                #     "atomic_formula_premis": atomic_formula_premis,
-                #     "atomic_formula_kesimpulan": atomic_formula_kesimpulan,
-                #     "predikat": predikat,
-                # },
-        #     },
-        #     messageId= str(uuid.uuid4())
-        # )
+       
         if is_eval == False:
             self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateProgress/{chat_id}"],
@@ -522,7 +506,8 @@ class LogicalFallacyPromptWorker(Worker):
               "prompt_user" : prompt_user,
               "chat_id" : chat_id or message['data']['chat_id'],
               "process_name" : process_name or message['data']['process_name'],
-              "latest_intent":latest_intent
+              "latest_intent":latest_intent,
+              'type': 'prompt'
           }
           )
 

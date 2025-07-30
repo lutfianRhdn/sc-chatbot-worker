@@ -99,5 +99,6 @@ allConfigs = {
     "LogicalFallacyPromptWorker": LogicalFallacyPromptWorkerConfig,
     "SMTConverterWorker": SMTConverterWorkerConfig,
     "CounterExampleCreatorWorker": CounterExampleCreatorWorkerConfig,
-    "LogicalFallacyClassificationWorker": LogicalFallacyClassificationWorkerConfig
+    "LogicalFallacyClassificationWorker": LogicalFallacyClassificationWorkerConfig,
+    "LogicalFallacyResponseWorker": LogicalFallacyResponseWorkerConfig
 }

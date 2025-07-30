@@ -170,19 +170,13 @@ class CRAGWorker(Worker):
 
             self.app_evaluasi = workflow_evaluasi.compile()
             print('CRAGWorker initialized successfully.')
-            async def run_background_tasks():
-                try:
-                    # Run both health_check and listen_task concurrently
-                    await asyncio.gather(
-                        self.listen_task()
-                    )
-                except Exception as e:
-                    traceback.print_exc()
-                    print(e)
-                    log(f"Failed to run background tasks: {e}", "error")
-            
-                        # Start the async tasks
-            asyncio.run(run_background_tasks())
+
+            #### until this part
+            # start background threads *before* blocking server
+            # threading.Thread(target=self.listen_task, daemon=True).start()
+            # threading.Thread(target=self.health_check, daemon=True).start()
+
+            asyncio.run(self.listen_task())
         except Exception as e:
             traceback.print_exc()
             print(e)
@@ -994,7 +988,15 @@ class CRAGWorker(Worker):
             },
             messageId= str(uuid4())
         )
-
+        
+        self.sendToOtherWorker(
+            destination=[f"LogicalFallacyResponseWorker/removeLFResponse/"],
+            data={
+                "chat_id":id,
+                "response": final_response,
+            },
+            messageId= str(uuid4())
+        )
         log(f"CRAGWorker processing completed successfully. chat_id: {id}", "success")
         input_evaluasi = {
             "claim": value["generation"],

@@ -11,6 +11,7 @@ import traceback
 from typing import List
 import uuid
 import time
+from cvc5.utils.cvc import CVCGenerator
 from  utils.log import log 
 from utils.handleMessage import sendMessage, convertMessage
 
@@ -248,8 +249,39 @@ class SMTConverterWorker(Worker):
             traceback.print_exc()
             print(e)
 
+    def smt_file_converter_from_response(self,message):
+        log("Converting FOL to SMT-LIB format", "info")
+        fol_keseluruhan = message['data']['fol']
+        
+        fol_standardized = re.sub(r"∃", "exists ", fol_keseluruhan)
+        fol_standardized = re.sub(r"∀", "forall ", fol_standardized)
+        fol_standardized = re.sub(r"∧", "and", fol_standardized)
+        fol_standardized = re.sub(r"&", "and", fol_standardized)
+        fol_standardized = re.sub(r"→", "->", fol_standardized)
+        fol_standardized = re.sub(r"⇒", "->", fol_standardized)
+        fol_standardized = re.sub(r"∨", "or", fol_standardized)
+        fol_standardized = re.sub(r"¬", "not", fol_standardized)
 
+        try:
+            script = CVCGenerator(fol_standardized).generateCVCScript() 
+            self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": message["data"]["process_name"],
+                        "sub_process_name": "Generate SMT file",
+                        "input": fol_standardized,
+                        "output": script,
+                    },
+                    messageId=(str(uuid.uuid4()))
+                )
+            self.smt_solver(script,message)
+            
+        except Exception as e:
+            traceback.print_exc()
+            log(f"Error in SMT file conversion: {e}", "error")
+            # return f"Terjadi kesalahan: {e}"
     def smt_solver(self, smt2_code: str, message):
+        
         cvc5_path: str = None
         get_model: bool = True
         if cvc5_path is None:
@@ -290,10 +322,6 @@ class SMTConverterWorker(Worker):
             output = result.stdout.strip()
             stderr_output = result.stderr.strip()
 
-            # print(f"DEBUG - Return code: {result.returncode}")
-            # print(f"DEBUG - STDOUT length: {len(output)}")
-            # print(f"DEBUG - STDERR length: {len(stderr_output)}")
-            # print(output)
             if stderr_output:
                 print(f"DEBUG - STDERR: {stderr_output}")
 
@@ -304,9 +332,8 @@ class SMTConverterWorker(Worker):
             else:
                 counterexample = "-"
                 check_sat = "unknown"
-            # if result.returncode != 0:
-            #     raise RuntimeError(f"CVC5 error (code {result.returncode}):\n{stderr_output}")
-            # print(counterexample)
+            if result.returncode != 0:
+                raise RuntimeError(f"CVC5 error (code {result.returncode}):\n{stderr_output}")
             if message['data']['is_eval'] == False:
                 self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
@@ -321,59 +348,22 @@ class SMTConverterWorker(Worker):
                     },
                     messageId=(str(uuid.uuid4()))
                 )
-
+            message['data']['model']= counterexample
+            message['data']['check_sat'] = check_sat or "unknown"
             self.sendToOtherWorker(
                 messageId=message.get("messageId"),
                 destination=["CounterExampleCreatorWorker/interpretasi_counterexample/"],
-                data={
-                    "model":counterexample,
-                    "check_sat":check_sat or "unknown",
-                    "prompt": message["data"]["prompt"],
-                    "premis": message["data"]["premis"],
-                    "kesimpulan": message["data"]["kesimpulan"],
-                    "term_premis": message["data"]["term_premis"],
-                    "terms_kesimpulan": message["data"]["terms_kesimpulan"],
-                    "predikat": message["data"]["predikat"],
-                    "fol": message["data"]["fol"],
-                    "feedback": message["data"]["feedback"],
-                    "is_eval": message["data"]["is_eval"],
-                    "user_intent" : message["data"]["user_intent"],
-                    "eval_iteration" : message["data"]["eval_iteration"],
-                    "prompt_user" : message["data"]["prompt_user"],
-                    "chat_id" : message["data"]["chat_id"],
-                    "process_name" : message["data"]["process_name"],
-                    "latest_intent": message["data"]["latest_intent"]
-            })
-
-        finally:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)    
-
-    def test(self,message)->None:
-        """
-        Example method to test the worker functionality.
-        Replace this with your actual worker methods.
-        """
-        data = message.get("data", {})
-
-
-        # process
-
-
-        #send back to RestAPI
-        self.sendToOtherWorker(
-          messageId=message.get("messageId"),
-          destination=["RestApiWorker/onProcessed"],
-          data=data
-          )
-      #   sendMessage(
-      #     status="completed",
-      #     reason="Test method executed successfully.",
-      #     destination=["supervisor"],
-      #     data={"message": "This is a test response."}
-      # )
-        log("Test method called", "info")
-        # return {"status": "success", "data": "This is a test response."}
+                data=message["data"])
+        except Exception as e:
+            traceback.print_exc()
+            log(f"Error running CVC5: {e}", "error")
+            message['data']['model']= '-'
+            message['data']['check_sat'] = "unknown"
+            self.sendToOtherWorker(
+                messageId=message.get("messageId"),
+                destination=["CounterExampleCreatorWorker/interpretasi_counterexample/"],
+                data=message["data"])
+            
 
 def main(conn: Connection, config: dict):
     worker = SMTConverterWorker()

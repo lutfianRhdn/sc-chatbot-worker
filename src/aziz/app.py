@@ -9,8 +9,11 @@ CORS(app)
 
 def modify_respons(respons):
     transformasi_respons_chatbot_ke_fol = function_transformasi_respons_chatbot_ke_fol(respons)
+    
     pembuatan_counter_example = function_pembuatan_counter_example(respons, transformasi_respons_chatbot_ke_fol['chain_1']['premis'], transformasi_respons_chatbot_ke_fol['chain_1']['kesimpulan'], transformasi_respons_chatbot_ke_fol['chain_2']['terms_premis'], transformasi_respons_chatbot_ke_fol['chain_2']['terms_kesimpulan'], transformasi_respons_chatbot_ke_fol['chain_3']['atomic_formula'], transformasi_respons_chatbot_ke_fol['chain_4']['fol'])
+    
     klasifikasi_logical_fallacy = function_klasifikasi_logical_fallacies(respons, pembuatan_counter_example['interpretasi_counter_example'])
+    
     identifikasi_thematic_progression = function_analisis_thematic_progression(transformasi_respons_chatbot_ke_fol['chain_1']['premis'], transformasi_respons_chatbot_ke_fol['chain_1']['kesimpulan'])
     modifikasi_respons_chatbot = function_perbaikan_respons_chatbot(respons, pembuatan_counter_example['interpretasi_counter_example'], klasifikasi_logical_fallacy, identifikasi_thematic_progression['identifikasi_masalah_thematic_progression'])
     print("❇️ Ini hasil Transformasi Respons Chatbot ke FOL")
