@@ -38,7 +38,7 @@ class Supervisor:
         self.create_worker("CounterExampleCreatorWorker", count=1, config=CounterExampleCreatorWorkerConfig)
         self.create_worker("LogicalFallacyClassificationWorker", count=1, config=LogicalFallacyClassificationWorkerConfig)
 
-        self.create_worker("LogicalFallacyResponseWorker", count=1, config=LogicalFallacyResponseWorkerConfig)
+        # self.create_worker("LogicalFallacyResponseWorker", count=1, config=LogicalFallacyResponseWorkerConfig)
 
         ####
         # until this part

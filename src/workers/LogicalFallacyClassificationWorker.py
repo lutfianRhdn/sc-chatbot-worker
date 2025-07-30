@@ -49,7 +49,7 @@ class LogicalFallacyClassificationWorker(Worker):
 
         asyncio.run(self.listen_task())
 
-    def listen_task(self):
+    async def listen_task(self):
         while True:
             try:
                 if LogicalFallacyClassificationWorker.conn.poll(1):  # Check for messages with 1 second timeout
@@ -64,7 +64,7 @@ class LogicalFallacyClassificationWorker(Worker):
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(message)
-                    asyncio.sleep(0.1)  # Add a small delay to prevent busy-waiting
+                    await asyncio.sleep(0.1)  # Add a small delay to prevent busy-waiting
             except EOFError:
                 break
             except Exception as e:

@@ -44,7 +44,7 @@ class SMTConverterWorker(Worker):
         # start background threads *before* blocking server
 
         asyncio.run(self.listen_task())
-    def listen_task(self):
+    async def listen_task(self):
         while True:
             try:
                 if SMTConverterWorker.conn.poll(1):  # Check for messages with 1 second timeout
@@ -59,7 +59,7 @@ class SMTConverterWorker(Worker):
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(message)
-                    asyncio.sleep(0.1)  # Allow other tasks to run
+                    await asyncio.sleep(0.1)  # Allow other tasks to run
             except EOFError:
                 break
             except Exception as e:
@@ -257,8 +257,9 @@ class SMTConverterWorker(Worker):
             base_path = os.path.dirname(os.path.abspath(__file__))
             cvc5_path = os.path.join(base_path,'../cvc5/unix/bin/cvc5')
             if self.os_type =='Windows':
-                cvc5_path = os.path.join(base_path, "../cvc5/windows/bin/cvc5.exe")
-            
+                cvc5_path = os.path.join(base_path, r"../cvc5/windows/bin/cvc5.exe")
+            print(f"DEBUG - Using CVC5 path: {cvc5_path}")
+            print(self.os_type)
             possible_paths = [cvc5_path]
             for path in possible_paths:
                 try:

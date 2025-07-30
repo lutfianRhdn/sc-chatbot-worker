@@ -69,7 +69,7 @@ class LogicalFallacyPromptWorker(Worker):
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(message)
-                    asyncio.sleep(0.1)  # Allow other tasks to run
+                    await asyncio.sleep(0.1)  # Allow other tasks to run
             except EOFError:
                 break
             except Exception as e:

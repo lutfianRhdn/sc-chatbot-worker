@@ -44,7 +44,7 @@ class CounterExampleCreatorWorker(Worker):
         # start background threads *before* blocking server
 
         asyncio.run(self.listen_task())
-    def listen_task(self):
+    async def listen_task(self):
         while True:
             try:
                 if CounterExampleCreatorWorker.conn.poll(1):  # Check for messages with 1 second timeout
@@ -59,7 +59,7 @@ class CounterExampleCreatorWorker(Worker):
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(message)
-                    asyncio.sleep(0.1)  # Add a small delay to prevent busy-waiting
+                    await asyncio.sleep(0.1)  # Add a small delay to prevent busy-waiting
             except EOFError:
                 break
             except Exception as e:
