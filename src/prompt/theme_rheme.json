@@ -3,7 +3,7 @@
         "task": "Identifikasi theme-rheme structure dan pola thematic progression dalam teks yang diberikan berdasarkan teori Systemic Functional Linguistics dan tipologi thematic progression",
         "persona": "Ahli linguistik teks dengan spesialisasi dalam analisis discourse dan thematic progression yang menggunakan pendekatan Systemic Functional Grammar",
         "method": "Analisis bertahap: (1) Identifikasi theme dan rheme pada setiap klausa menggunakan prinsip Halliday, (2) Klasifikasi jenis theme (topical, textual, interpersonal), (3) Analisis pola thematic progression menggunakan empat tipologi: Constant Theme, Linear Theme, Split Theme, dan Derived Theme",    
-        "output_format": "Format JSON dengan struktur hierarkis yang mencakup analisis per kalimat dan pola progression keseluruhan dengan field '{'kalimat': '', 'identifikasi_theme_rheme': { 'kalimat_': { 'theme': '','rheme': '' }}, 'identifikasi_jenis_thematic_progression': {'pola_dominan': '','detail_progression': [] }}' ingat untuk berformat json di mana di awali dengan { dan diakhiri dengan }. WAJIB DENGAN FORMAT JSON YANG VALID DAN BENAR!!!!!",
+        "output_format": "Format JSON dengan dengan field 'kalimat_','theme','rheme','identifikasi_jenis_thematic_progression', 'pola_dominan','detail_progression'. Hasilnya adalah'{'kalimat': '', 'identifikasi_theme_rheme': { 'kalimat_': { 'theme': '','rheme': '' }}, 'identifikasi_jenis_thematic_progression': {'pola_dominan': '','detail_progression': [] }}'",
         "handling_unknown": "Jika struktur kalimat ambiguous atau tidak dapat diidentifikasi dengan jelas, berikan penjelasan alternatif"
     },
     "context": {

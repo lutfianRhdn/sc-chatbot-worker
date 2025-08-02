@@ -249,8 +249,8 @@ class LogicalFallacyResponseWorker(Worker):
             "kalimat_keseluruhan": fix_json_if_incomplete(modifikasi_respons)['kalimat_keseluruhan']
         }
         return modifikasi_respons
-    def logical_fallacy_prompt_modification(self,message):
-        log("LogicalFallacyResponseWorker/logical_fallacy_prompt_modification, 📝 Memulai modifikasi prompt logical fallacy.", "info")
+    def logical_fallacy_response_modification(self,message):
+        log("LogicalFallacyResponseWorker/logical_fallacy_response_modification, 📝 Memulai modifikasi prompt logical fallacy.", "info")
         print(json.dumps(message, indent=4))
         
         progression = self.thematic_progression(premis=message['data']['premis'], kesimpulan=message['data']['kesimpulan'])

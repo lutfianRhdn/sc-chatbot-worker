@@ -99,7 +99,7 @@
                 ]
             },
             {
-                "premis_eksplisit": ["Lebih dari 60% pasal dalam UU TNI tidak lagi sesuai dengan tantangan zaman digital dan geopolitik modern.","Laporan Komisi Transparansi Militer ASEAN (KTMA) menyebutkan bahwa UU TNI saat ini berisiko melemahkan posisi Indonesia dalam kerja sama militer regional."],
+                "premis": ["Lebih dari 60% pasal dalam UU TNI tidak lagi sesuai dengan tantangan zaman digital dan geopolitik modern.","Laporan Komisi Transparansi Militer ASEAN (KTMA) menyebutkan bahwa UU TNI saat ini berisiko melemahkan posisi Indonesia dalam kerja sama militer regional."],
                 "kesimpulan": "Keseluruhan UU TNI sudah usang dan perlu direvisi total.",
                 "terms_premis": [
                     { "term": "x", "jenis": "variabel", "keterangan": "untuk merepresentasikan pasal-pasal dalam UU TNI" }, 

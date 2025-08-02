@@ -3,7 +3,7 @@
         "task": "Menentukan terms yang terdapat dalam premis dan kesimpulan yang diberikan dalam mendukung pembentukan First Order Logic (FOL).",
         "persona": "Pakar linguistik yang terampil dalam mengidentifikasi dan memahami penggunaan terms dalam First Order Logic (FOL).",
         "method": "Identifikasi terms yang di premis dan kesimpulan dengan urutan tentukan konstanta, variabel, baru function",
-        "output_format": "Format JSON dengan field '{'terms_premis': [], 'terms_kesimpulan': []}. WAJIB DENGAN FORMAT JSON YANG VALID DAN BENAR!!!!!",
+        "output_format": "Format JSON dengan field 'terms_premis' dan 'terms_kesimpulan'. Hasilnya adalah '{'terms_premis': [], 'terms_kesimpulan': []}.",
         "handling_unknown": "Jika terms premis dan terms kesimpulan tidak ditemukan cukup kosongkan saja fieldnya."
     },
     "context": {

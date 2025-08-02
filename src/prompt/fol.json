@@ -3,14 +3,14 @@
         "task": "Menentukan First Order Logic (FOL) atau complex sentece dalam argumen yang diberikan berdasarkan atomic formula yang sudah dibuat.",
         "persona": "Pakar linguistik yang sangat terampil dalam mengidentifikasi dan memahami penggunaan FOL dalam argumen logika formal.",
         "method": "1. Identifikasi dan bangun formula atomik dari term dan atomic formula yang tersedia menggunakan aturan sintaksis induktif: gabungkan term ke dalam predikat untuk membentuk formula atomik dasar, seperti P(t1, ..., tn) di mana P adalah predikat dan t1 hingga tn adalah term[13][19].\n2. Gunakan quantifier universal (∀) untuk fakta umum dan existential (∃) untuk keberadaan spesifik, dengan memastikan variabel bebas dan terikat dikelola secara benar untuk menghindari ambiguitas, seperti dalam definisi induktif formula.\n3. Bangun FOL terpisah untuk setiap premis dan kesimpulan secara individu, pisahkan masing-masing dengan tanda kurung untuk menjaga struktur, kemudian hubungkan dengan connective logis (∧, ¬, ∨, →, ↔) untuk membentuk formula kompleks yang mencerminkan entailment.\n4. Verifikasi semantik formula yang terbentuk dengan memeriksa kepuasan dalam model: pastikan makna FOL sesuai dengan premis dan kesimpulan asli melalui interpretasi domain dan assignment variabel, serta periksa properti seperti validitas dan satisfiability.\n5. Pastikan FOL bebas error untuk SMT solver seperti CVC dengan menghindari sintaksis ambigu, memeriksa keseimbangan tanda kurung, dan memvalidasi struktur secara rekursif.\n6. Hindari penggunaan tanda '=' atau simbol lain yang tidak diizinkan, serta pastikan tidak ada spasi pada konstanta dan hubungan logis antar-premis serta kesimpulan tetap terjaga.\n7. Setiap ada tanda ∧ wajib diberi spasi sebelum dan sesudahnya!",
-        "output_format": "Format JSON dengan field 'fol'. Hasilnya berarti '{'fol':''}'. WAJIB DENGAN FORMAT JSON YANG VALID DAN BENAR!!!!!",
+        "output_format": "Format JSON dengan field 'fol'. Hasilnya berarti '{'fol':''}'.",
         "handling_unknown": "Jika tidak dapat mengidentifikasi FOL dengan jelas, field 'FOL' dapat dikosongkan."
     },
     "context": {
-        "relevant_information": "FOL digunakan untuk mengubah kalimat logis menjadi ekspresi formal. FOL terdiri dari terms dan atomic formula. Dari itu semua FOL atau complex respons_chatbot formula merupakan hasil menghubungkan term dan atomic formula dengan menggunakan connectives (∧,¬,∨,⇒,⇔) dan menggunakan quantifiers (∀, ∃). Tidak ada simbol [] dan {} dalam FOL TIDAK ADA SPASI PADA KONSTANTA --> benar uu_tni --> salah uu tni. Salah tantangan_digital/geopolitik_moder!!!. Pastikan tidak ada kelebihan maupun kekurangan tanda kurung, spasi, atau simbol lainnya. Tidak ada tanda sama dengan (=) dalam FOL. Pastikan gunakan simbol ∀ untuk mengungkap fakta, contohnya semua lapang itu di luar maka ∀x lapang(x) -> di_luar(x). Jangan sampai antara premis FOL dan kesimpulan FOL tidak memiliki hubungan logis!!!.",
+        "relevant_information": "FOL digunakan untuk mengubah kalimat logis menjadi ekspresi formal. FOL terdiri dari terms dan atomic formula. Dari itu semua FOL atau complex formula merupakan hasil menghubungkan term dan atomic formula dengan menggunakan connectives (∧,¬,∨,⇒,⇔) dan menggunakan quantifiers (∀, ∃). Tidak ada simbol [] dan {} dalam FOL TIDAK ADA SPASI PADA KONSTANTA --> benar uu_tni --> salah uu tni. Salah tantangan_digital/geopolitik_moder!!!. Pastikan tidak ada kelebihan maupun kekurangan tanda kurung, spasi, atau simbol lainnya. Tidak ada tanda sama dengan (=) dalam FOL. Pastikan gunakan simbol ∀ untuk mengungkap fakta, contohnya semua lapang itu di luar maka ∀x lapang(x) -> di_luar(x). Jangan sampai antara premis FOL dan kesimpulan FOL tidak memiliki hubungan logis!!!.",
         "examples": [
             {
-                "respons_chatbot": "I met a tall man who loved to eat cheese, now I believe all tall people like cheese.",
+                "kalimat": "I met a tall man who loved to eat cheese, now I believe all tall people like cheese.",
                 "premis": ["A tall man loves cheese."],
                 "kesimpulan": "All tall people like cheese.",
                 "terms_premis": [
@@ -32,7 +32,7 @@
                 "fol": "(∃x (Man(x) ∧ Tall(x) ∧ Loves(x, cheese))) → (∀x (Tall(x) ∧ Person(x) → Likes(x, cheese)))"
             },
             {
-                "respons_chatbot": "Two dogs are fighting in a field. Consequently, the two dogs are outside.",
+                "kalimat": "Two dogs are fighting in a field. Consequently, the two dogs are outside.",
                 "premis": ["Two dogs are fighting in a field.","Field is outside."],
                 "kesimpulan": "The two dogs are outside.",
                 "terms_premis": [
@@ -57,7 +57,7 @@
                 "fol": "(∃x ∃y ∃z (Dog(x) ∧ Dog(y) ∧ Field(z) ∧ Fighting(x, y) ∧ In(x, z) ∧ In(y, z))) ∧ (∀z (Field(z) → ∀w (In(w, z) → Outside(w)))) → ∃x ∃y (Dog(x) ∧ Dog(y) ∧ Outside(x) ∧ Outside(y))"
             },
             {
-                "respons_chatbot": "A woman sits alone on a park bench in the sun. Hence, a woman is in a park.",
+                "kalimat": "A woman sits alone on a park bench in the sun. Hence, a woman is in a park.",
                 "premis": ["A woman sits alone on a park bench in the sun.","park bench is in a park."],
                 "kesimpulan": "A woman is in a park.",
                 "terms_premis": [
@@ -85,7 +85,7 @@
                 "fol": "(∃x ∃y ∃z (Woman(x) ∧ ParkBench(y) ∧ Sun(z) ∧ Sits(x, y) ∧ On(x, y) ∧ Alone(x) ∧ In(x, z))) ∧ (∀y (ParkBench(y) → ∃w (Park(w) ∧ LocatedIn(y, w)))) ∧ (∀x ∀y ∀w (Sits(x, y) ∧ LocatedIn(y, w) → In(x, w))) → (∃x ∃w (Woman(x) ∧ Park(w) ∧ In(x, w)))"
             },
             {
-                "respons_chatbot": "A woman is standing at a podium. Thus, a person is at a podium.",
+                "kalimat": "A woman is standing at a podium. Thus, a person is at a podium.",
                 "premis": ["A woman is standing at a podium.","Woman is person."],
                 "kesimpulan": "A person is at a podium",
                 "terms_premis": [
@@ -107,7 +107,7 @@
                 "fol": "(∃x ∃y (Woman(x) ∧ Podium(y) ∧ Standing(x) ∧ At(x, y))) ∧ (∀x (Woman(x) → Person(x))) → (∃z ∃y (Person(z) ∧ Podium(y) ∧ At(z, y)))"
             },
             {
-                "respons_chatbot": "Berdasarkan evaluasi cepat dari Pusat Reformasi Hukum Strategis TNI (PRHST) tahun 2024, ditemukan bahwa lebih dari 60% pasal dalam UU TNI tidak lagi sesuai dengan tantangan zaman digital dan geopolitik modern. Selain itu, laporan Komisi Transparansi Militer ASEAN (KTMA) menyebutkanbahwa UU TNI saatiniberisiko melemahkan posisi Indonesia dalam kerja sama militer regional. Maka, meskipunhanyabeberapa pasal yang saat ini menuai kontroversi, hal tersebut cukup menjadi indikator bahwa keseluruhan UU TNI memang sudah usang dan perlu direvisi total. Tidak adagunanya mempertahankan sebagian isi dari produk hukum yang sudah tidak relevan secara keseluruhan.",
+                "kalimat": "Berdasarkan evaluasi cepat dari Pusat Reformasi Hukum Strategis TNI (PRHST) tahun 2024, ditemukan bahwa lebih dari 60% pasal dalam UU TNI tidak lagi sesuai dengan tantangan zaman digital dan geopolitik modern. Selain itu, laporan Komisi Transparansi Militer ASEAN (KTMA) menyebutkanbahwa UU TNI saatiniberisiko melemahkan posisi Indonesia dalam kerja sama militer regional. Maka, meskipunhanyabeberapa pasal yang saat ini menuai kontroversi, hal tersebut cukup menjadi indikator bahwa keseluruhan UU TNI memang sudah usang dan perlu direvisi total. Tidak adagunanya mempertahankan sebagian isi dari produk hukum yang sudah tidak relevan secara keseluruhan.",
                 "premis": ["Lebih dari 60% pasal dalam UU TNI tidak lagi sesuai dengan tantangan zaman digital dan geopolitik modern.","Laporan Komisi Transparansi Militer ASEAN (KTMA) menyebutkan bahwa UU TNI saat ini berisiko melemahkan posisi Indonesia dalam kerja sama militer regional."],
                 "kesimpulan": "Keseluruhan UU TNI sudah usang dan perlu direvisi total.",
                 "terms_premis": [
@@ -137,7 +137,7 @@
             }
         ],
         "input_queries": {
-            "respons_chatbot": "",
+            "kalimat": "",
             "premis": [],
             "kesimpulan": "",
             "terms_premis": [],
