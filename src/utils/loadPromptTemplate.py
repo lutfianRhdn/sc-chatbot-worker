@@ -1,6 +1,6 @@
 
 import json
-
+import os
 
 def load_prompt_template(filename):
     """Load prompt template from JSON file"""
