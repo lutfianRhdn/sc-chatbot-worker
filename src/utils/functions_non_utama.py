@@ -113,7 +113,7 @@ def load_prompt_template(filename):
     try:
         base_path = os.path.dirname(os.path.abspath(__file__))
         json_file_path = os.path.join(base_path, '../prompt/', filename)
-        
+        print(f"load prompt : {json_file_path}")
         with open(json_file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
