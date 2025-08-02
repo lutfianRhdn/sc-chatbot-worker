@@ -81,7 +81,7 @@ class CounterExampleCreatorWorker(Worker):
     # add your worker methods here
     ##########################################
 
-    def interpretasi_counterexample(self, message):
+    def counterexample_interpretation(self, message):
         model = message["data"]['model']
         prompt_pengguna = message["data"]['prompt']
         premis = message["data"]['premis']
@@ -92,10 +92,10 @@ class CounterExampleCreatorWorker(Worker):
         fol = message["data"]['fol']
 
         if not isinstance(model, str) or not model.strip():
-            print("interpretasi_counterexample, ❌ Counterexample tidak valid atau kosong.")
+            print("counterexample_interpretation, ❌ Counterexample tidak valid atau kosong.")
         
         if 'prompt_interpretation_template' not in globals():
-            print("interpretasi_counterexample, ❌ Template interpretasi tidak ditemukan.")
+            print("counterexample_interpretation, ❌ Template interpretasi tidak ditemukan.")
         try:
             if( message['data']['type'] =='prompt'):
                 filled_prompt = prompt_interpretation_template.format(
@@ -120,7 +120,7 @@ class CounterExampleCreatorWorker(Worker):
                 prompt['context']['input_queries']['hasil_smt_solver'] = model
 
                 filled_prompt = json.dumps(prompt, indent=4)
-            log("interpretasi_counterexample, 📝 Mengirim prompt ke LLM untuk interpretasi counterexample.", "info")
+            log("counterexample_interpretation, 📝 Mengirim prompt ke LLM untuk interpretasi counterexample.", "info")
             # Panggil LLM
             response = self.client.chat.completions.create(
                 model= self.model_name,
@@ -130,16 +130,16 @@ class CounterExampleCreatorWorker(Worker):
                 ]
             )
             hasil = response.choices[0].message.content.strip()
-            print("interpretasi_counterexample, 📝 Hasil dari LLM:", hasil)
+            print("counterexample_interpretation, 📝 Hasil dari LLM:", hasil)
             try:
                 if hasil.startswith("```json"):
                     hasil = hasil.replace("```json","")
                     hasil = hasil.replace("```","")
                 result_json = json.loads(hasil)
-                print("interpretasi_counterexample, 📝 Hasil JSON yang di-parse:", result_json)
+                print("counterexample_interpretation, 📝 Hasil JSON yang di-parse:", result_json)
                     
-                message['data']['interpretasi']= result_json["interpretasi_counter_example"] if "interpretasi_counter_example" in result_json else result_json["interpretasi_counterexample"]
-                log("interpretasi_counterexample, ✅ Interpretasi counterexample berhasil dibuat.", "info")
+                message['data']['interpretasi']= result_json["interpretasi_counter_example"] if "interpretasi_counter_example" in result_json else result_json["counterexample_interpretation"]
+                log("counterexample_interpretation, ✅ Interpretasi counterexample berhasil dibuat.", "info")
                 if message['data']['is_eval'] == False:
                     self.sendToOtherWorker(
                             destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
@@ -176,7 +176,7 @@ class CounterExampleCreatorWorker(Worker):
                 }
             
         except Exception as e:
-            return {"interpretasi_counterexample": f"❌ Terjadi kesalahan internal: {str(e)}"}
+            return {"counterexample_interpretation": f"❌ Terjadi kesalahan internal: {str(e)}"}
 
 
     def test(self,message)->None:

@@ -350,7 +350,7 @@ class SMTConverterWorker(Worker):
             message['data']['check_sat'] = check_sat or "unknown"
             self.sendToOtherWorker(
                 messageId=message.get("messageId"),
-                destination=["CounterExampleCreatorWorker/interpretasi_counterexample/"],
+                destination=["CounterExampleCreatorWorker/counterexample_interpretation/"],
                 data=message["data"])
         except Exception as e:
             traceback.print_exc()
@@ -359,7 +359,7 @@ class SMTConverterWorker(Worker):
             message['data']['check_sat'] = "unknown"
             self.sendToOtherWorker(
                 messageId=message.get("messageId"),
-                destination=["CounterExampleCreatorWorker/interpretasi_counterexample/"],
+                destination=["CounterExampleCreatorWorker/counterexample_interpretation/"],
                 data=message["data"])
             
 

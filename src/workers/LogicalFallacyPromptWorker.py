@@ -277,7 +277,7 @@ class LogicalFallacyPromptWorker(Worker):
                         "process_name": message["data"]["process_name"],
                         "sub_process_name": "Analysis and Identification Thematic Progression Problem",
                         "input": prompt_pengguna,
-                        "output": json.loads(progression)["masalah_thematic_progression"],
+                        "output": json.loads(thematic_progression)["masalah_thematic_progression"],
                     },
                     messageId=(str(uuid.uuid4()))
                 )
