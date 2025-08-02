@@ -93,6 +93,7 @@ class LogicalFallacyResponseWorker(Worker):
         for chain in chains:
             if chain == "premis_kesimpulan.json":
                 prompt = load_prompt_template(chain)
+                print(prompt)
                 prompt['context']['input_queries']['respons_chatbot'] = response
                 prompt = json.dumps(prompt, indent=4)
                 res = self.client.chat.completions.create(
