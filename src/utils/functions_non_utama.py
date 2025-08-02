@@ -117,8 +117,12 @@ def load_prompt_template(filename):
         print(f"load prompt : {json_file_path}")
         with open(json_file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
-    except FileNotFoundError:
+    except FileNotFoundError as e:
+        print(f"error load prompt: {e}")
+        
         return {"template": "", "variables": []}
+    except Exception as e:
+        print(f"error load prompt: {e}")
         
 def fix_json_if_incomplete(json_str):
     # print(f"Fixing JSON if incomplete: {json_str}")
