@@ -28,17 +28,7 @@ prompt_fol_template = """
     ],
     "handling_unknown": "Jika tidak ada struktur argumen yang dapat dikenali, berikan 'FOL tidak ditemukan' di bagian fol."
   }},
-  "output_indicator": {{
-    "kalimat": "...",
-    "premis": "[]",
-    "kesimpulan": "...",
-    "terms_premis": [],
-    "terms_kesimpulan": [],
-    "atomic_formula_premis": [],
-    "atomic_formula_kesimpulan": []
-    "predikat": [],
-    "fol": ""
-  }},
+  "output_format": "Format JSON dengan field 'premis', 'kesimpulan', "terms_premis", "terms_kesimpulan", "atomic_formula_premis", "atomic_formula_kesimpulan", "predikat", "fol" dengan hasilnya adalah '"kalimat": "...","premis": "[]","kesimpulan": "...","terms_premis": [],"terms_kesimpulan": [],"atomic_formula_premis": [],"atomic_formula_kesimpulan": []"predikat": [],"fol": ""}'.,
   "context": {{
     "relevant_information": "FOL digunakan untuk mengubah kalimat logis menjadi ekspresi formal. FOL terdiri dari terms dan atomic formula. Dari itu semua FOL atau complex sentence formula merupakan hasil menghubungkan term dan atomic formula dengan menggunakan connectives (∧,¬,∨,⇒,⇔) dan menggunakan quantifiers (∀, ∃). Tidak ada simbol [] dan {{}} dalam FOL. TIDAK ADA SPASI PADA KONSTANTA --> benar: uu_tni | salah: uu tni. Salah juga: tantangan_digital/geopolitik_moder!!!. Pastikan tidak ada kelebihan maupun kekurangan tanda kurung, spasi, atau simbol lainnya. Tidak ada tanda sama dengan (=) dalam FOL. Pastikan gunakan simbol ∀ untuk mengungkap fakta, contohnya: semua lapang itu di luar → ∀x (lapang(x) → di_luar(x)). Jangan sampai antara premis FOL dan kesimpulan FOL tidak memiliki hubungan logis.",
     "examples": [
@@ -67,7 +57,15 @@ prompt_fol_template = """
     ],
     "input_queries": [
       {{
-        "kalimat": "{kalimat}"
+        "kalimat": "{kalimat}",
+        "premis": "[]",
+        "kesimpulan": "...",
+        "terms_premis": [],
+        "terms_kesimpulan": [],
+        "atomic_formula_premis": [],
+        "atomic_formula_kesimpulan": [],  
+        "predikat": [],
+        "fol": ""
       }}
     ]
   }}

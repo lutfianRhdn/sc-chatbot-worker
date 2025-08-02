@@ -85,12 +85,12 @@ class LogicalFallacyClassificationWorker(Worker):
     # add your worker methods here
     ##########################################
 
-    def klasifikasi_fallacy(self, premis,prompt, kesimpulan, interpretasi,fallacy_data, message):
+    def fallacy_classification(self, premise,prompt, conclusion, interpretation,fallacy_data, message):
 
         prompt_klasifikasi = prompt_klasifikasi_template.format(
-            premis=premis,
-            kesimpulan=kesimpulan,
-            interpretasi=interpretasi,
+            premis=premise,
+            kesimpulan=conclusion,
+            interpretasi=interpretation,
             kalimat=prompt,
             fallacy_data = fallacy_data
         )
@@ -113,9 +113,9 @@ class LogicalFallacyClassificationWorker(Worker):
                     "process_name": message["data"]["process_name"],
                     "sub_process_name": "Logical fallacy Classification",
                     "input": {
-                        "premis" :premis,
-                        "kesimpulan" :kesimpulan,
-                        "interpretasi" :interpretasi,
+                        "premis" :premise,
+                        "kesimpulan" :conclusion,
+                        "interpretasi" :interpretation,
                         "kalimat" :prompt,
                         "fallacy_data" : fallacy_data                    
                     },
@@ -134,14 +134,12 @@ class LogicalFallacyClassificationWorker(Worker):
             messageId=message.get("messageId"),
             destination=["LogicalFallacyPromptWorker/logical_fallacy_prompt_modification/" if message['data']['type'] == 'prompt' else "LogicalFallacyResponseWorker/logical_fallacy_prompt_modification/"], 
             data=message['data']
-            )        
- 
-        
+            )
 
     def prepare_classification(self,message)->None:
-        premis = message["data"]["premis"]
-        kesimpulan = message["data"]["kesimpulan"]
-        interpretasi = message["data"]["interpretasi"]
+        premise = message["data"]["premis"]
+        conclusion = message["data"]["kesimpulan"]
+        interpretation = message["data"]["interpretasi"]
         prompt = message["data"]["prompt"]
         log("prepare_classification, 📝 Memulai klasifikasi logical fallacy.", "info")
 
@@ -158,10 +156,10 @@ class LogicalFallacyClassificationWorker(Worker):
             fallacy_data += f"- {tipe}: {deskripsi} sebagai contoh: '{contoh}'\n"
         # print(fallacy_data)   
         # print(message) 
-        self.klasifikasi_fallacy(premis = premis,
+        self.fallacy_classification(premis = premise,
         prompt = prompt,
-        kesimpulan = kesimpulan,
-        interpretasi = interpretasi,
+        kesimpulan = conclusion,
+        interpretasi = interpretation,
         fallacy_data = fallacy_data,
         message = message)
 

@@ -86,8 +86,6 @@ class SMTConverterWorker(Worker):
             # print(message)
             ENTITY_SORT = "Entity"
             fol = message['data']['fol']
-            chat_id = message['data']['chat_id']
-            process_name = message['data']['process_name']
 
             logic = "ALL"
             # fol: str, logic: str = "ALL"
@@ -251,9 +249,9 @@ class SMTConverterWorker(Worker):
 
     def smt_file_converter_from_response(self,message):
         log("Converting FOL to SMT-LIB format", "info")
-        fol_keseluruhan = message['data']['fol']
+        fol = message['data']['fol']
         
-        fol_standardized = re.sub(r"∃", "exists ", fol_keseluruhan)
+        fol_standardized = re.sub(r"∃", "exists ", fol)
         fol_standardized = re.sub(r"∀", "forall ", fol_standardized)
         fol_standardized = re.sub(r"∧", "and", fol_standardized)
         fol_standardized = re.sub(r"&", "and", fol_standardized)

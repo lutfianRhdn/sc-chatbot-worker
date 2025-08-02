@@ -89,7 +89,7 @@ class LogicalFallacyPromptWorker(Worker):
     ##########################################
     # add your worker methods here
     ##########################################
-    def transformasi_prompt_ke_fol(self, prompt_pengguna: str):
+    def fol_transformation(self, prompt_pengguna: str):
         prompt_fol = prompt_fol_template.format(kalimat=prompt_pengguna)
 
         response = self.client.chat.completions.create(
@@ -167,7 +167,7 @@ class LogicalFallacyPromptWorker(Worker):
         semantic_intent = response.choices[0].message.content.strip()
         return semantic_intent
 
-    def progression(self, prompt_pengguna):
+    def thematic_progression(self, prompt_pengguna):
         prompt_progression = prompt_progression_template.format(
             kalimat=prompt_pengguna
         )
@@ -248,7 +248,7 @@ class LogicalFallacyPromptWorker(Worker):
             # print(feedback_intent)
             
             if eval_iteration == 3 or (fallacy_type == None and feedback_intent == None):
-                self.final_prompt_logical_fallacy(text=prompt_pengguna,
+                self.modify_prompt(text=prompt_pengguna,
                                     message=message,
                                     intent_relation='entailment' if feedback_intent == None else 'no entailment',
                                     user_intent=user_intent,
@@ -269,7 +269,7 @@ class LogicalFallacyPromptWorker(Worker):
                     messageId=(str(uuid.uuid4()))
                 )
 
-            progression = self.progression(prompt_pengguna)
+            thematic_progression = self.thematic_progression(prompt_pengguna)
             if message['data']['is_eval'] == False:
                 self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
@@ -356,7 +356,7 @@ class LogicalFallacyPromptWorker(Worker):
 
                 return
 
-            self.final_prompt_logical_fallacy(text=final_prompt_parsed,
+            self.modify_prompt(text=final_prompt_parsed,
                                               message=message,
                                               intent_relation=intent_relation["relationship"],
                                               user_intent=user_intent if user_intent is not None else intent,
@@ -397,7 +397,7 @@ class LogicalFallacyPromptWorker(Worker):
         
         return parsed_result
     
-    def final_prompt_logical_fallacy(self, text, message, intent_relation, fallacy_type, user_intent, modified_intent):
+    def modify_prompt(self, text, message, intent_relation, fallacy_type, user_intent, modified_intent):
         chat_id = message['data']['chat_id']
         log("success remove logical fallacy from prompt on chatId : "+chat_id,'success')
         self.sendToOtherWorker(
@@ -448,7 +448,7 @@ class LogicalFallacyPromptWorker(Worker):
         latest_intent = None):
 
         # print(prompt)
-        transformasi_fol = self.transformasi_prompt_ke_fol(prompt)
+        transformasi_fol = self.fol_transformation(prompt)
         
         fol = transformasi_fol.get("fol", "FOL tidak ditemukan")
         premis = transformasi_fol.get("premis", "Premis tidak ditemukan")
