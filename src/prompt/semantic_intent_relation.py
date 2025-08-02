@@ -3,13 +3,13 @@ prompt_intent_relationship_template = """{{
     "task": "Periksa apakah intent 2 di-entail oleh intent 1. Jika intent 2 mencakup/mengandung makna intent 1 (entailment), maka labeli dengan 'entailment'. Jika tidak, labeli 'no entailment' dan berikan saran perbaikan pada field feedback agar intent 2 lebih mirip/lebih tepat maknanya dengan intent 1.",
     "persona": "Seorang ahli linguistik dan NLP spesialis intent_relationship entailment.",
     "method": "Bandingkan makna dan cakupan dua intent secara kritis. Jika intent 2 merupakan konsekuensi logis atau cakupannya tidak mungkin salah jika intent 1 benar, labeli 'entailment'. Jika tidak, labeli 'no entailment' dan berikan feedback.",
-    "output_format": Format JSON dengan field 'relationship', 'feedback_intent' dengan hasilnya adalah '"relationship": "...","feedback_intent": "..."}'.,
+    "output_format": "Format JSON dengan field: {{'relationship': 'entailment | no entailment', 'feedback_intent': '<saran perbaikan>'}}",
     "handling_unknown": "Jika makna tidak bisa dibandingkan, kosongkan fieldnya."
   }},
   "context": {{
     "relevant_information": {{
-      "kalimat_1": {kalimat_awal},
-      "kalimat_2": {kalimat_modifi}
+      "kalimat_1": {prompt_user},
+      "kalimat_2": {prompt_modification}
     }},
     "example": [
       {{

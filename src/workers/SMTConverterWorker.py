@@ -277,6 +277,12 @@ class SMTConverterWorker(Worker):
         except Exception as e:
             traceback.print_exc()
             log(f"Error in SMT file conversion: {e}", "error")
+            message['data']['model']= ""
+            message['data']['check_sat'] = "unknown"
+            self.sendToOtherWorker(
+                messageId=message.get("messageId"),
+                destination=["CounterExampleCreatorWorker/counterexample_interpretation/"],
+                data=message["data"])            
             # return f"Terjadi kesalahan: {e}"
     def smt_solver(self, smt2_code: str, message):
         

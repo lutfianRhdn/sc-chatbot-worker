@@ -109,7 +109,7 @@ class LogicalFallacyResponseWorker(Worker):
                     print("❌ Tidak ada Logical Fallacy yang ditemukan dalam respons chatbot.")
                     return {
                         "premis": "",
-                        "kesimpulan": "",
+                        "conclusion": "",
                         "terms_premis": "",
                         "terms_kesimpulan": "",
                         "atomic_formula": "",
@@ -195,9 +195,9 @@ class LogicalFallacyResponseWorker(Worker):
         }
         return fol_transformation_response
 
-    def thematic_progression(self,premis, kesimpulan):
+    def thematic_progression(self,premise, conclusion):
         prompt = load_prompt_template("theme_rheme.json")
-        kalimat = ' '.join(premis) + ' ' + kesimpulan
+        kalimat = ' '.join(premise) + ' ' + conclusion
         prompt['context']['input_queries']['kalimat'] = kalimat 
         prompt = json.dumps(prompt, indent=4)
         res = self.client.chat.completions.create(

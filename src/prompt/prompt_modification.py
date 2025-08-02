@@ -9,7 +9,9 @@ prompt_modification_template = """{{
             "4) Integrasikan perbaikan thematic_progression untuk memastikan alur logis",
             "5) Validasi hasil modifikasi terhadap intent dan konsistensi argumen"
         ],
-        "output_format": Format JSON dengan field 'modified_sentence'dengan hasilnya adalah '"modified_sentence": "...".',
+        "output_format": {{
+            "modified_sentence": "<kalimat hasil modifikasi>"
+        }},
         "handling_unknown": "Jika elemen di 'relevant_information' kosong atau tidak ditemukan, biarkan field JSON-nya kosong tanpa menambah data."
     }},
     "context": {{

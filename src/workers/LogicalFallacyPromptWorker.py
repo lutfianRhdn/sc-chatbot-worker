@@ -74,6 +74,7 @@ class LogicalFallacyPromptWorker(Worker):
                 break
             except Exception as e:
               print(e)
+              traceback.print_exc()
               log(f"Listener error: {e}",'error' )
               break
 
@@ -89,71 +90,77 @@ class LogicalFallacyPromptWorker(Worker):
     ##########################################
     # add your worker methods here
     ##########################################
-    def fol_transformation(self, prompt_pengguna: str):
-        prompt_fol = prompt_fol_template.format(kalimat=prompt_pengguna)
+    def fol_transformation(self, prompt_user: str):
+        try:
+            print("(prompt_user",prompt_user)
+            prompt_fol = prompt_fol_template.format(kalimat=prompt_user)
+            print("prompt_fol", prompt_fol)
+            response = self.client.chat.completions.create(
+                model= self.model_name,
+                messages=[
+                    {"role": "system", "content": "Anda adalah pakar logika formal."},
+                    {"role": "user", "content": prompt_fol}
+                ],
+                temperature=0.3,
+                max_tokens=1500
+            )
 
-        response = self.client.chat.completions.create(
-            model= self.model_name,
-            messages=[
-                {"role": "system", "content": "Anda adalah pakar logika formal."},
-                {"role": "user", "content": prompt_fol}
-            ],
-            temperature=0.3,
-            max_tokens=1500
-        )
-
-        llm_response = response.choices[0].message.content.strip()
+            llm_response = response.choices[0].message.content.strip()
+            print("llm_response", llm_response)
 
         # Bersihkan karakter Unicode dan escape
-        def fix_unicode(text):
-            if isinstance(text, str):
-                try:
-                    # coba deteksi jika ada karakter aneh, tapi jika tidak bisa decode, tetapkan saja
-                    return text.encode('utf-8').decode('utf-8')
-                except UnicodeDecodeError:
-                    return text
-            elif isinstance(text, list):
-                return [fix_unicode(t) for t in text]
-            elif isinstance(text, dict):
-                return {k: fix_unicode(v) for k, v in text.items()}
-            return text
+            def fix_unicode(text):
+                if isinstance(text, str):
+                    try:
+                        # coba deteksi jika ada karakter aneh, tapi jika tidak bisa decode, tetapkan saja
+                        return text.encode('utf-8').decode('utf-8')
+                    except UnicodeDecodeError:
+                        return text
+                elif isinstance(text, list):
+                    return [fix_unicode(t) for t in text]
+                elif isinstance(text, dict):
+                    return {k: fix_unicode(v) for k, v in text.items()}
+                return text
 
 
-        # # Coba parse JSON atau literal_eval jika perlu
-        try:
-            data = json.loads(llm_response)
-        except json.JSONDecodeError:
+            # # Coba parse JSON atau literal_eval jika perlu
             try:
-                data = ast.literal_eval(llm_response)
-            except Exception as e:
-                print("Gagal parsing LLM response:", e)
-                return {"error": str(e), "raw": llm_response}
+                data = json.loads(llm_response)
+            except json.JSONDecodeError:
+                try:
+                    data = ast.literal_eval(llm_response)
+                except Exception as e:
+                    print("Gagal parsing LLM response:", e)
+                    return {"error": str(e), "raw": llm_response}
 
-        kalimat = fix_unicode(data.get("kalimat"))
-        premis = fix_unicode((data.get("premis", "")))
-        kesimpulan = fix_unicode((data.get("kesimpulan", "")))
-        terms_premis = fix_unicode((data.get("terms_premis", [])))
-        terms_kesimpulan = fix_unicode((data.get("terms_kesimpulan", [])))
-        atomic_premis = fix_unicode((data.get("atomic_formula_premis", [])))
-        atomic_kesimpulan = fix_unicode((data.get("atomic_formula_kesimpulan", [])))
-        predikat = fix_unicode((data.get("predikat", [])))
-        fol = fix_unicode((data.get("fol", "")))
+            kalimat = fix_unicode(data.get("kalimat"))
+            premis = fix_unicode((data.get("premis", "")))
+            kesimpulan = fix_unicode((data.get("kesimpulan", "")))
+            terms_premis = fix_unicode((data.get("terms_premis", [])))
+            terms_kesimpulan = fix_unicode((data.get("terms_kesimpulan", [])))
+            atomic_premis = fix_unicode((data.get("atomic_formula_premis", [])))
+            atomic_kesimpulan = fix_unicode((data.get("atomic_formula_kesimpulan", [])))
+            predikat = fix_unicode((data.get("predikat", [])))
+            fol = fix_unicode((data.get("fol", "")))
 
-        return {
-            "kalimat": kalimat,
-            "premis": premis,
-            "kesimpulan": kesimpulan,
-            "terms_premis": terms_premis,
-            "terms_kesimpulan": terms_kesimpulan,
-            "atomic_formula_premis": atomic_premis,
-            "atomic_formula_kesimpulan": atomic_kesimpulan,
-            "predikat": predikat,
-            "fol": fol
-        }
+            return {
+                "kalimat": kalimat,
+                "premis": premis,
+                "kesimpulan": kesimpulan,
+                "terms_premis": terms_premis,
+                "terms_kesimpulan": terms_kesimpulan,
+                "atomic_formula_premis": atomic_premis,
+                "atomic_formula_kesimpulan": atomic_kesimpulan,
+                "predikat": predikat,
+                "fol": fol
+            }
+        except Exception as e:
+                traceback.print_exc()
+                print(e)
 
-    def intent(self, prompt_pengguna):
+    def intent(self, prompt_user):
         prompt_intent = prompt_intent_template.format(
-            kalimat=prompt_pengguna
+            kalimat=prompt_user
         )
         response = self.client.chat.completions.create(
             model= self.model_name,
@@ -167,9 +174,9 @@ class LogicalFallacyPromptWorker(Worker):
         semantic_intent = response.choices[0].message.content.strip()
         return semantic_intent
 
-    def thematic_progression(self, prompt_pengguna):
+    def thematic_progression(self, prompt_user):
         prompt_progression = prompt_progression_template.format(
-            kalimat=prompt_pengguna
+            kalimat=prompt_user
         )
         response = self.client.chat.completions.create(
             model= self.model_name,
@@ -183,9 +190,9 @@ class LogicalFallacyPromptWorker(Worker):
         prompt_progression = response.choices[0].message.content.strip()
         return prompt_progression
 
-    def modification(self, prompt_pengguna, premis, kesimpulan, intent, fallacy_type_data, fallacy_location, feedback, masalah_thematic_progression):
+    def modification(self, prompt_user, premise, conclusion, intent, fallacy_type_data, fallacy_location, feedback, thematic_progression_problem):
         try:
-            # print(prompt_pengguna)
+            # print(prompt_user)
             # print("========================")
             # print(premis)
             # print("========================")
@@ -202,14 +209,14 @@ class LogicalFallacyPromptWorker(Worker):
             # print(masalah_thematic_progression)
             # print("========================")
             prompt_modification = prompt_modification_template.format(
-                kalimat=prompt_pengguna,
-                premis = premis,
-                kesimpulan = kesimpulan,
+                kalimat=prompt_user,
+                premis = premise,
+                kesimpulan = conclusion,
                 intent = intent,
                 fallacy_type_data = fallacy_type_data,
                 fallacy_location = fallacy_location,
                 feedback = feedback,
-                masalah_thematic_progression = masalah_thematic_progression
+                masalah_thematic_progression = thematic_progression_problem
             )        
 
             response = self.client.chat.completions.create(
@@ -230,11 +237,11 @@ class LogicalFallacyPromptWorker(Worker):
 
     def logical_fallacy_prompt_modification(self, message):
         try:
-            prompt_pengguna = message["data"]["prompt"]
-            premis = message["data"]["premis"]    
-            kesimpulan = message["data"]["kesimpulan"]    
-            fallacy_type = message["data"]["fallacy_type"]    
-            fallacy_location = message["data"]["fallacy_location"]    
+            prompt_user = message["data"]["prompt"]
+            premise = message["data"]["premis"]
+            conclusion = message["data"]["kesimpulan"]
+            fallacy_type = message["data"]["fallacy_type"]
+            fallacy_location = message["data"]["fallacy_location"]
             feedback = message["data"]["feedback"]
             
             feedback_intent = message["data"]["feedback_intent"] if "feedback_intent" in message["data"] else None
@@ -248,7 +255,7 @@ class LogicalFallacyPromptWorker(Worker):
             # print(feedback_intent)
             
             if eval_iteration == 3 or (fallacy_type == None and feedback_intent == None):
-                self.modify_prompt(text=prompt_pengguna,
+                self.modify_prompt(text=prompt_user,
                                     message=message,
                                     intent_relation='entailment' if feedback_intent == None else 'no entailment',
                                     user_intent=user_intent,
@@ -256,27 +263,27 @@ class LogicalFallacyPromptWorker(Worker):
                                     fallacy_type=fallacy_type)
                 return
             
-            intent = self.intent(prompt_pengguna)
+            intent = self.intent(prompt_user)
             if message['data']['is_eval'] == False:
                 self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
                     data={
                         "process_name": message["data"]["process_name"],
                         "sub_process_name": "Anlysis Semantic Intent",
-                        "input": prompt_pengguna,
+                        "input": prompt_user,
                         "output": intent,
                     },
                     messageId=(str(uuid.uuid4()))
                 )
 
-            thematic_progression = self.thematic_progression(prompt_pengguna)
+            thematic_progression = self.thematic_progression(prompt_user)
             if message['data']['is_eval'] == False:
                 self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
                     data={
                         "process_name": message["data"]["process_name"],
                         "sub_process_name": "Analysis and Identification Thematic Progression Problem",
-                        "input": prompt_pengguna,
+                        "input": prompt_user,
                         "output": json.loads(thematic_progression)["masalah_thematic_progression"],
                     },
                     messageId=(str(uuid.uuid4()))
@@ -293,20 +300,19 @@ class LogicalFallacyPromptWorker(Worker):
             for _, row in df.iterrows():
                 tipe = row['tipe']
                 deskripsi = row['deskripsi']
-                contoh = row['contoh']
-                
+
                 # Cek kecocokan (bisa case-insensitive)
                 if tipe.strip().lower() == fallacy_type.strip().lower():
                     fallacy_type_data += f"- {tipe} adalah {deskripsi}"
-            thematic_progression = json.loads(progression)["masalah_thematic_progression"]
-            final_prompt = self.modification(prompt_pengguna=prompt_pengguna,
-            premis = premis,
-            kesimpulan=kesimpulan,
+            thematic_progression = json.loads(thematic_progression)["masalah_thematic_progression"]
+            final_prompt = self.modification(prompt_user=prompt_user,
+            premise=premise,
+            conclusion=conclusion,
             intent=intent,
             fallacy_type_data=fallacy_type_data,
             fallacy_location=fallacy_location,
-            feedback = feedback_intent if feedback_intent is not None else feedback,
-            masalah_thematic_progression=thematic_progression[0] if len(thematic_progression)>0 else "")
+            feedback=feedback_intent if feedback_intent is not None else feedback,
+            thematic_progression_problem=thematic_progression[0] if len(thematic_progression) > 0 else "")
             # print(final_prompt)
             final_prompt_parsed = json.loads(final_prompt)["modified_sentence"]
 
@@ -317,14 +323,14 @@ class LogicalFallacyPromptWorker(Worker):
                         "process_name": message["data"]["process_name"],
                         "sub_process_name": "Prompt Modification",
                         "input": {
-                            "prompt_pengguna" : prompt_pengguna,
-                            "premis" :  premis,
-                            "kesimpulan" : kesimpulan,
-                            "intent" : intent,
-                            "fallacy_type_data" : fallacy_type_data,
-                            "fallacy_location" : fallacy_location,
-                            "feedback" :  feedback,
-                            "masalah_thematic_progression" : thematic_progression[0] if len(thematic_progression)>0 else ""
+                            "prompt_user": prompt_user,
+                            "premise": premise,
+                            "conclusion": conclusion,
+                            "intent": intent,
+                            "fallacy_type_data": fallacy_type_data,
+                            "fallacy_location": fallacy_location,
+                            "feedback": feedback,
+                            "thematic_progression_problem": thematic_progression[0] if len(thematic_progression) > 0 else ""
                         },
                         "output": final_prompt_parsed,
                     },
@@ -334,8 +340,8 @@ class LogicalFallacyPromptWorker(Worker):
             
             modified_intent = self.intent(final_prompt_parsed)
             # print(modified_intent)
-            intent_relation = self.intent_relationship(prompt_pengguna = prompt_user if prompt_user is not None else prompt_pengguna,
-            prompt_modifikasi=final_prompt_parsed,
+            intent_relation = self.intent_relationship(prompt_user = prompt_user if prompt_user is not None else prompt_user,
+            prompt_modification=final_prompt_parsed,
             semantic_intent_prompt= intent,
             semantic_intent_modif=modified_intent)
             # print(intent_relation)
@@ -346,7 +352,7 @@ class LogicalFallacyPromptWorker(Worker):
             if intent_relation["relationship"] == "no entailment" and fallacy_type != None:
                 is_eval=True
                 self.prepare_fol_transformation(prompt = final_prompt_parsed,
-                prompt_user =  prompt_user if prompt_user is not None else prompt_pengguna,
+                prompt_user =  prompt_user if prompt_user is not None else prompt_user,
                 feedback_intent=feedback_intent,
                 is_eval=is_eval,
                 user_intent=user_intent if user_intent is not None else intent,
@@ -367,10 +373,10 @@ class LogicalFallacyPromptWorker(Worker):
             traceback.print_exc()
             print(e)
 
-    def intent_relationship(self, prompt_pengguna, prompt_modifikasi, semantic_intent_prompt, semantic_intent_modif):
+    def intent_relationship(self, prompt_user, prompt_modification, semantic_intent_prompt, semantic_intent_modif):
         prompt_intent_relationship = prompt_intent_relationship_template.format(
-            prompt_pengguna=prompt_pengguna,
-            prompt_modifikasi=prompt_modifikasi,
+            prompt_user=prompt_user,
+            prompt_modification=prompt_modification,
             semantic_intent_prompt=semantic_intent_prompt,
             semantic_intent_modif=semantic_intent_modif
         )
@@ -520,7 +526,7 @@ class LogicalFallacyPromptWorker(Worker):
         data = message.get("data", {})
         prompt = data["prompt"]
         id=data["id"]
-
+        print(message)
         self.sendToOtherWorker(
             destination=[f"DatabaseInteractionWorker/createNewProgress/{id}"],
             data={

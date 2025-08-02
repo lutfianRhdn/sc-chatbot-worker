@@ -138,7 +138,7 @@ class CounterExampleCreatorWorker(Worker):
                 result_json = json.loads(hasil)
                 print("counterexample_interpretation, 📝 Hasil JSON yang di-parse:", result_json)
                     
-                message['data']['interpretasi']= result_json["interpretasi_counter_example"] if "interpretasi_counter_example" in result_json else result_json["counterexample_interpretation"]
+                message['data']['interpretasi']= result_json["interpretasi_counter_example"] if "interpretasi_counter_example" in result_json else result_json["interpretasi_counterexample"]
                 log("counterexample_interpretation, ✅ Interpretasi counterexample berhasil dibuat.", "info")
                 if message['data']['is_eval'] == False:
                     self.sendToOtherWorker(

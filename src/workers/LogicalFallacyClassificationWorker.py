@@ -86,7 +86,6 @@ class LogicalFallacyClassificationWorker(Worker):
     ##########################################
 
     def fallacy_classification(self, premise,prompt, conclusion, interpretation,fallacy_data, message):
-
         prompt_klasifikasi = prompt_klasifikasi_template.format(
             premis=premise,
             kesimpulan=conclusion,
@@ -132,7 +131,7 @@ class LogicalFallacyClassificationWorker(Worker):
         message['data']['feedback'] = parsed.get("feedback", "Tidak ada feedback.")
         self.sendToOtherWorker(
             messageId=message.get("messageId"),
-            destination=["LogicalFallacyPromptWorker/logical_fallacy_prompt_modification/" if message['data']['type'] == 'prompt' else "LogicalFallacyResponseWorker/logical_fallacy_prompt_modification/"], 
+            destination=["LogicalFallacyPromptWorker/logical_fallacy_prompt_modification/" if message['data']['type'] == 'prompt' else "LogicalFallacyResponseWorker/logical_fallacy_response_modification/"], 
             data=message['data']
             )
 
@@ -156,10 +155,10 @@ class LogicalFallacyClassificationWorker(Worker):
             fallacy_data += f"- {tipe}: {deskripsi} sebagai contoh: '{contoh}'\n"
         # print(fallacy_data)   
         # print(message) 
-        self.fallacy_classification(premis = premise,
+        self.fallacy_classification(premise = premise,
         prompt = prompt,
-        kesimpulan = conclusion,
-        interpretasi = interpretation,
+        conclusion = conclusion,
+        interpretation = interpretation,
         fallacy_data = fallacy_data,
         message = message)
 
