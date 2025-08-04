@@ -7,7 +7,7 @@ from langchain_openai import AzureChatOpenAI
 
 # Prompt
 prompt = PromptTemplate.from_template(
-    """Peran Anda: Seorang ahli politik yang membantu orang dalam menggali informasi dalam sebuah topik.
+    """Peran Anda: Seorang ahli yang membantu orang dalam menggali informasi dalam sebuah topik.
 
 Ketentuan:
 1. Jawaban hanya boleh memuat fakta eksplisit dalam *Context*—tanpa asumsi, pengetahuan umum, opini, atau tambahan lain.
