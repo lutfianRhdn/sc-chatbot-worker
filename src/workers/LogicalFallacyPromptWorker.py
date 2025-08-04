@@ -159,6 +159,7 @@ class LogicalFallacyPromptWorker(Worker):
                 print(e)
 
     def intent(self, prompt_user):
+        
         prompt_intent = prompt_intent_template.format(
             kalimat=prompt_user
         )
@@ -247,7 +248,11 @@ class LogicalFallacyPromptWorker(Worker):
             feedback_intent = message["data"]["feedback_intent"] if "feedback_intent" in message["data"] else None
             is_eval = message["data"]["is_eval"] if "is_eval" in message["data"] else False
             user_intent = message["data"]["user_intent"] if "user_intent" in message["data"] else None
-            prompt_user = message["data"]["prompt_user"] if "prompt_user" in message["data"] else None
+
+            if "prompt_user" in message["data"] and message["data"]["prompt_user"] is not None:
+                prompt_user = message["data"]["prompt_user"]
+                print("prompt user di if",prompt_user)
+
             latest_intent = message["data"]["latest_intent"] if "latest_intent" in message["data"] else None
 
             eval_iteration = message["data"]["eval_iteration"]  if "eval_iteration" in message["data"] else 0
@@ -265,6 +270,7 @@ class LogicalFallacyPromptWorker(Worker):
             
             intent = self.intent(prompt_user)
             if message['data']['is_eval'] == False:
+                print("prompt user di Anlysis Semantic Intent",prompt_user)
                 self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
                     data={
@@ -374,6 +380,7 @@ class LogicalFallacyPromptWorker(Worker):
             print(e)
 
     def intent_relationship(self, prompt_user, prompt_modification, semantic_intent_prompt, semantic_intent_modif):
+        print("prompt_user di intent relationship", prompt_user)
         prompt_intent_relationship = prompt_intent_relationship_template.format(
             prompt_user=prompt_user,
             prompt_modification=prompt_modification,
