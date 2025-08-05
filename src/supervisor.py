@@ -11,7 +11,7 @@ from utils.log import log
 from utils.handleMessage import sendMessage,convertMessage
 import psutil
 
-from config.workerConfig import CounterExampleCreatorWorkerConfig, DatabaseInteractionWorkerConfig, LogicalFallacyClassificationWorkerConfig, LogicalFallacyPromptWorkerConfig, LogicalFallacyResponseWorkerConfig,allConfigs, SMTConverterWorkerConfig, VectorWorkerConfig, PromptRecommendationWorkerConfig, RabbitMQWorkerConfig, RestApiWorkerConfig, CRAGWorkerConfig
+from config.workerConfig import CacheWorkerConfig, CounterExampleCreatorWorkerConfig, DatabaseInteractionWorkerConfig, LogicalFallacyClassificationWorkerConfig, LogicalFallacyPromptWorkerConfig, LogicalFallacyResponseWorkerConfig,allConfigs, SMTConverterWorkerConfig, VectorWorkerConfig, PromptRecommendationWorkerConfig, RabbitMQWorkerConfig, RestApiWorkerConfig, CRAGWorkerConfig
 
 #########
 # dont edit this class except worker conf
@@ -26,6 +26,7 @@ class Supervisor:
         ####
         # just edit this part to add your workers
         ####
+        self.create_worker("CacheWorker", count=1, config=CacheWorkerConfig)
  
         self.create_worker("RestApiWorker", count=1, config=RestApiWorkerConfig)
         self.create_worker("CRAGWorker", count=1, config=CRAGWorkerConfig)

@@ -112,6 +112,7 @@ class DatabaseInteractionWorker(Worker):
   
   def getPrompt(self,id,data):
     prompts = self._db['prompts'].find({"project_id":id})
+    print(prompts)
     return {"data":list(prompts),"destination":[f"RestApiWorker/onProcessed/"]}
   
   def getTweets(self, id,data):

@@ -1,5 +1,5 @@
 
-from .env import port, database, tavily_api_key, azure, rabbit_mq
+from .env import port, database, tavily_api_key, azure, rabbit_mq,redis
 
 
 DatabaseInteractionWorkerConfig={
@@ -88,6 +88,14 @@ LogicalFallacyClassificationWorkerConfig={
     "azure_openai_api_version": azure['api_version']['api']
 }
 
+CacheWorkerConfig={
+    "redis_url": redis['host'], # type: ignore
+    "redis_port": redis['port'], # type: ignore
+    "redis_db": redis['db'], # type: ignore
+    "redis_username": redis['username'], # type: ignore
+    "redis_password": redis['password'], # type: ignore
+
+} 
 
 allConfigs = {
     "DatabaseInteractionWorker": DatabaseInteractionWorkerConfig,
@@ -100,5 +108,6 @@ allConfigs = {
     "SMTConverterWorker": SMTConverterWorkerConfig,
     "CounterExampleCreatorWorker": CounterExampleCreatorWorkerConfig,
     "LogicalFallacyClassificationWorker": LogicalFallacyClassificationWorkerConfig,
-    "LogicalFallacyResponseWorker": LogicalFallacyResponseWorkerConfig
+    "LogicalFallacyResponseWorker": LogicalFallacyResponseWorkerConfig,
+    "CacheWorker": CacheWorkerConfig
 }
