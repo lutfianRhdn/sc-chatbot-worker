@@ -1,7 +1,6 @@
 import os
-from dotenv import load_dotenv
-load_dotenv()
 
+# Simple configuration without dotenv dependency for testing
 port = int(os.getenv("PORT", 5000))
 database={
     "connection_string": os.getenv("DB_CONNECTION_STRING", "mongodb://localhost:27017"),

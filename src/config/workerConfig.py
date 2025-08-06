@@ -95,6 +95,13 @@ CacheWorkerConfig={
     "redis_username": redis['username'], # type: ignore
     "redis_password": redis['password'], # type: ignore
 
+}
+
+GraphQLFederationSubgraph2WorkerConfig={
+    'port': port + 1,  # Use a different port for GraphQL federation
+    'federation_version': '2.0',
+    'subgraph_name': 'chatbot-worker-subgraph-2',
+    'schema_registry_url': 'http://localhost:4000',  # Apollo Gateway/Router URL
 } 
 
 allConfigs = {
@@ -109,5 +116,6 @@ allConfigs = {
     "CounterExampleCreatorWorker": CounterExampleCreatorWorkerConfig,
     "LogicalFallacyClassificationWorker": LogicalFallacyClassificationWorkerConfig,
     "LogicalFallacyResponseWorker": LogicalFallacyResponseWorkerConfig,
-    "CacheWorker": CacheWorkerConfig
+    "CacheWorker": CacheWorkerConfig,
+    "GraphQLFederationSubgraph2Worker": GraphQLFederationSubgraph2WorkerConfig
 }
