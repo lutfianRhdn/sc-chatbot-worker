@@ -360,7 +360,7 @@ class CRAGWorker(Worker):
         # Score each doc
         filtered_docs = []
         web_search = "No"
-
+        grade_list = []
 
         # print("===DOCUMENTS TO BE GRADED===")
         # print(documents)
@@ -375,17 +375,20 @@ class CRAGWorker(Worker):
                 # print(d.page_content)
                 result_grade.append({"document": d.page_content, "grade": "Benar"})
                 filtered_docs.append(d)
+                grade_list.append(grade)
             elif grade == "Salah":
                 # print("---GRADE: DOCUMENT SALAH---")
                 # print(d.page_content)
                 result_grade.append({"document": d.page_content, "grade": "Salah"})
                 web_search = "Yes"
+                grade_list.append(grade)
             else:
                 # print("---GRADE: DOCUMENT AMBIGU---")
                 # print(d.page_content)
                 result_grade.append({"document": d.page_content, "grade": "Ambigu"})
                 web_search = "Yes"
                 filtered_docs.append(d)
+                grade_list.append(grade)
                 continue
         # print("===FILTERED DOCUMENTS===")
         # print(filtered_docs)
@@ -402,7 +405,7 @@ class CRAGWorker(Worker):
             },
             messageId=(str(uuid4()))
         )
-        return {"documents": filtered_docs, "question": question, "web_search": web_search,"grade": grade}
+        return {"documents": filtered_docs, "question": question, "web_search": web_search,"grade": grade_list}
 
     def transform_query(self, state):
         """
@@ -632,23 +635,11 @@ class CRAGWorker(Worker):
         grade = state["grade"]
 
 
-        if web_search == "Yes" and grade == "Salah" :
-            # All documents have been filtered check_relevance
-            # We will re-generate a new query
-            # print(
-                # "---DECISION: DOCUMENTS ARE NOT RELEVANT TO QUESTION, TRANSFORM QUERY---"
-            # )
+        if web_search == "Yes" and any(g in ["Salah", "Ambigu"] for g in grade):
             return "transform_query"
-        elif web_search == "Yes" and grade == "Ambigu" :
-            # All documents have been filtered check_relevance
-            # We will re-generate a new query
-            # print(
-            #     "---DECISION: DOCUMENTS ARE AMBIGUOUS, TRANSFORM QUERY---"
-            # )
-            return "transform_query"
-        else:
-            # We have relevant documents, so generate answer
-            # print("---DECISION: GENERATE---")
+    
+        # If all documents are graded Correct
+        elif web_search == "Yes" and all(g == "Benar" for g in grade):
             return "generate"
         
 

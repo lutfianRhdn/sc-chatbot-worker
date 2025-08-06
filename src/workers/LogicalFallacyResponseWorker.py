@@ -93,6 +93,7 @@ class LogicalFallacyResponseWorker(Worker):
         for chain in chains:
             if chain == "premis_kesimpulan.json":
                 prompt = load_prompt_template(chain)
+                print(prompt)
                 prompt['context']['input_queries']['respons_chatbot'] = response
                 prompt = json.dumps(prompt, indent=4)
                 res = self.client.chat.completions.create(
@@ -253,14 +254,14 @@ class LogicalFallacyResponseWorker(Worker):
         log("LogicalFallacyResponseWorker/logical_fallacy_response_modification, 📝 Memulai modifikasi prompt logical fallacy.", "info")
         print(json.dumps(message, indent=4))
         
-        progression = self.thematic_progression(premis=message['data']['premis'], kesimpulan=message['data']['kesimpulan'])
+        progression = self.thematic_progression(premise=message['data']['premis'], conclusion=message['data']['kesimpulan'])
         self.sendToOtherWorker(
             destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
             data={
                 "process_name": self.process_name,
                 "sub_process_name": "Thematic Progression",
                 "input": {
-                    "conclution": message['data']['kesimpulan'],
+                    "conclusion": message['data']['kesimpulan'],
                     "premis": message['data']['premis'],
                     },
                 "output": progression,

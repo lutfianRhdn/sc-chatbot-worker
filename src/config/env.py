@@ -39,3 +39,12 @@ rabbit_mq= {
         "compensation_queue": os.getenv("RABBITMQ_PRODUCE_COMPENSATION_QUEUE", "topicsCompensationQueue")
     }
 }
+
+
+redis={
+    "host": os.getenv("REDIS_URL", "localhost"),
+    "port": int(os.getenv("REDIS_PORT", 6379)),
+    "db": int(os.getenv("REDIS_DB", 0)),
+    "username":os.getenv("REDIS_USERNAME", ""),
+    "password": os.getenv("REDIS_PASSWORD", "")
+}

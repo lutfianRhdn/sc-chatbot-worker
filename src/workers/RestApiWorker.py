@@ -135,19 +135,29 @@ class RestApiWorker(FlaskView, Worker):
     ##########################################
     @route('/prompt', methods=['GET'])
     def getPrompt(self):
-      projectId = request.args.get('project_id')
-      response = self.sendToOtherWorker(
-          destination=[f"DatabaseInteractionWorker/getPrompt/{projectId}"],
-          data={"projectId": projectId}
-      )
-    #   print(response)
-      if response["status"] == "timeout":
-          return jsonify({"error": "Request timed out"}), 504
-      elif response["status"] == "completed":
-          return jsonify(response["result"]), 200
-      else:
-          return jsonify({"error": "Unknown error"}), 500
-      
+        projectId = request.args.get('project_id')
+        
+        result = self.sendToOtherWorker(
+            destination=[f"CacheWorker/getByKey/{projectId}"],
+            data={"project_id": "{projectId}",}
+        )
+        print(result)
+        if len(result["result"]) == 0:
+            result = self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/getPrompt/{projectId}"],
+                data={"key": projectId}
+            )
+            sendMessage(
+                conn=RestApiWorker.conn,
+                messageId=str(uuid.uuid4()),
+                status="processing",
+                destination=['CacheWorker/set/' + projectId ],
+                data={
+                    "key":f"{projectId}",
+                    "value":result['result'],
+                }
+            )
+        return jsonify(result), 200
       
     @route('/chat/<id>', methods=['GET'])
     def getProgresst(self,id):

@@ -1,0 +1,13 @@
+{
+  "name": "Python 3.10",
+  "image": "mcr.microsoft.com/devcontainers/python:0-3.10",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:1": {
+      "version": "latest"
+    }
+  },
+  "extensions": [
+    "ms-python.python",
+    "ms-python.vscode-pylance"
+  ]
+}
