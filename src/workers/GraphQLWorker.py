@@ -9,8 +9,8 @@ import strawberry
 from utils.log import log 
 from utils.handleMessage import sendMessage, convertMessage
 from .Worker import Worker
-from graphql.types import SubProcessType, DataItemType, RootJSONType, PromptResponse
-from graphql.resolvers import Query, Mutation
+from gql_schema.types import SubProcessType, DataItemType, RootJSONType, PromptResponse
+from gql_schema.resolvers import Query, Mutation
 
 # Simple GraphQL implementation with Flask and debug-server capabilities
 class CustomGraphQLView(GraphQLView):
