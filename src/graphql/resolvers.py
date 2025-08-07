@@ -1,5 +1,4 @@
 import strawberry
-from strawberry.federation import Schema
 from typing import List, Optional
 from .types import SubProcessType, DataItemType, RootJSONType, PromptResponse
 
@@ -223,9 +222,8 @@ class Mutation:
         else:
             return RootJSONType(data=[], message="Failed to process response", status="error")
 
-# Create the federated schema
-schema = Schema(
+# Create the schema for debug-server
+schema = strawberry.Schema(
     query=Query,
-    mutation=Mutation,
-    enable_federation_2=True
+    mutation=Mutation
 )

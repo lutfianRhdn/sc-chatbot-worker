@@ -2,15 +2,34 @@ from multiprocessing.connection import Connection
 import traceback
 import threading
 import uuid
-import asyncio
 import time
-import uvicorn
-from fastapi import FastAPI, Request
-from strawberry.fastapi import GraphQLRouter
+from flask import Flask, request, jsonify
+from strawberry.flask.views import GraphQLView
+import strawberry
 from utils.log import log 
 from utils.handleMessage import sendMessage, convertMessage
 from .Worker import Worker
-from graphql.schema import schema
+from graphql.types import SubProcessType, DataItemType, RootJSONType, PromptResponse
+from graphql.resolvers import Query, Mutation
+
+# Simple GraphQL implementation with Flask and debug-server capabilities
+class CustomGraphQLView(GraphQLView):
+    # override the instance method called by Strawberry to build context
+    def get_context(self, request, response=None):
+        # self here is the view instance; we read worker from the view class
+        # (set by as_view_with_worker)
+        return {"request": request, "worker": getattr(self.__class__, "worker", None), 'response': response}
+
+    @classmethod
+    def as_view_with_worker(cls, name, worker, **kwargs):
+        """
+        Attach the worker to the view class and return the view function.
+        Do NOT pass get_context or worker into as_view(...) kwargs.
+        """
+        # Attach worker to the view class (so instances can access it)
+        cls.worker = worker
+        # Create and return the Flask view function
+        return super().as_view(name, **kwargs)
 
 class GraphQLWorker(Worker):
     ###############
@@ -18,32 +37,67 @@ class GraphQLWorker(Worker):
     ###############
     conn: Connection
     requests: dict = {}
-    instance = None  # Class variable to store the instance
     
     def __init__(self):
-        # we'll assign these in run()
-        self._port: int = None
         self.requests: dict = {}
-        self.app = FastAPI()
-        GraphQLWorker.instance = self  # Store instance for context
-        
-        # Create custom context getter for GraphQL
-        async def get_context(request: Request):
-            return {"worker": GraphQLWorker.instance}
-        
-        # Add GraphQL router with context
-        graphql_router = GraphQLRouter(schema, context_getter=get_context)
-        self.app.include_router(graphql_router, prefix="/graphql")
+        self.app = Flask(__name__)
+        self.schema = strawberry.Schema(
+            query=Query,
+            mutation=Mutation,
+        )
+        self.setup_routes()
+    
+    def setup_routes(self):
+        # Add Strawberry GraphQL endpoint with debug capabilities
+        self.app.add_url_rule(
+            '/graphql',
+            view_func=CustomGraphQLView.as_view_with_worker(
+                'graphql',
+                worker=self,
+                schema=self.schema,
+                graphiql=True
+            ),
+            methods=['GET', 'POST']
+        )
         
         # Add health check endpoint
-        @self.app.get("/health")
-        async def health_check():
+        @self.app.route('/health')
+        def health_check():
             return {"status": "healthy", "service": "GraphQLWorker"}
         
         # Add a root endpoint that provides GraphQL playground
-        @self.app.get("/")
-        async def root():
+        @self.app.route('/')
+        def root():
             return {"message": "GraphQL Worker is running", "graphql_endpoint": "/graphql"}
+        
+        # Legacy endpoint for backward compatibility
+        @self.app.route('/query', methods=['POST'])
+        def handle_query():
+            """Legacy query handler - redirects to Strawberry"""
+            try:
+                data = request.get_json()
+                query = data.get('query', '')
+                variables = data.get('variables', {})
+                
+                # Execute using Strawberry schema
+                context = {"worker": self}
+                log.log(f"Executing GraphQL query: {query} with variables: {variables}", 'info')
+                result = self.schema.execute_sync(
+                    query=query,
+                    variable_values=variables,
+                    context_value=context
+                )
+                
+                # Format response
+                response_data = {"data": result.data}
+                if result.errors:
+                    response_data["errors"] = [{"message": str(error)} for error in result.errors]
+                    
+                return jsonify(response_data), 200
+                
+            except Exception as e:
+                log.log(f"Error in GraphQL query: {str(e)}", 'error')
+                return jsonify({"errors": [{"message": str(e)}]}), 500
         
     def run(self, conn: Connection, port: int):
         # assign here
@@ -51,14 +105,14 @@ class GraphQLWorker(Worker):
         self._port = port
         
         def run_listen_task():
-            asyncio.run(self.listen_task())
+            self.listen_task()
         threading.Thread(target=run_listen_task, daemon=True).start()
 
-        # Run FastAPI with uvicorn
-        uvicorn.run(self.app, host="0.0.0.0", port=self._port, log_level="info")
+        # Run Flask app with debug-server capabilities
+        self.app.run(host="0.0.0.0", port=self._port, debug=True, threaded=True)
 
-    async def listen_task(self):
-        log("GraphQLWorker is listening for messages...", "info")
+    def listen_task(self):
+        log.log("GraphQLWorker is listening for messages...", "info")
         while True:
             try:
                 # Change poll(1) to poll(0.1) to reduce blocking time
@@ -79,8 +133,8 @@ class GraphQLWorker(Worker):
                         instance_method = getattr(self, method, self.onProcessed)
                         instance_method(message)
                 
-                # Allow other async tasks to run
-                await asyncio.sleep(0.01)
+                # Allow other tasks to run
+                time.sleep(0.01)
             except EOFError:
                 break
             except Exception as e:
