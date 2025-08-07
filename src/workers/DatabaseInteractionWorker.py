@@ -187,7 +187,7 @@ class DatabaseInteractionWorker(Worker):
       data = list(collection.find({"project_id":id}))
       
       self._isBusy= False
-      return {"data":data,"destination":["RestApiWorker/onProcessed"]}
+      return {"data":data,"destination":["GraphQLWorker/onProcessed"]}
   def createNewHistory(self,id,data):
     created = self._db['history'].insert_one({
       "process": [],
@@ -198,7 +198,7 @@ class DatabaseInteractionWorker(Worker):
       
     })
     print(f"New history created with id: {created.inserted_id}")
-    return {"data":[{"_id":created.inserted_id}],"destination":["RestApiWorker/onProcessed/"]}
+    return {"data":[{"_id":created.inserted_id}],"destination":["GraphQLWorker/onProcessed/"]}
 
     
   def getProgress(self,id,data):
@@ -213,7 +213,7 @@ class DatabaseInteractionWorker(Worker):
     # print(f"Found message: {message}")
     if not message:
       print(f"No message found with id: {id}")
-      return {"data": [], "destination": ["RestApiWorker/onProcessed/"]}
+      return {"data": [], "destination": ["GraphQLWorker/onProcessed/"]}
     process_list = message.get('process', [])
     # print(f"Process list: {process_list}")
     if process_name:
@@ -221,7 +221,7 @@ class DatabaseInteractionWorker(Worker):
       # print(f"Filtered process list: {process_list}")
     if not process_list:
       print(f"No process found with name: {process_name}")
-    return {"data": list(process_list), "destination": ["RestApiWorker/onProcessed/"]}
+    return {"data": list(process_list), "destination": ["GraphQLWorker/onProcessed/"]}
   
   
   def createNewProgress(self,id,data):

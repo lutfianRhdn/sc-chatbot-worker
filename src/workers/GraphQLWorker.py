@@ -128,7 +128,7 @@ class GraphQLWorker:
         entry["response"] = msg.get("data")
         entry["event"].set()
     
-    def send_to_other_worker(self, destination: list, data: dict):
+    def sendToOtherWorker(self, destination: list, data: dict):
         """Send synchronous message to other worker and wait for response"""
         task_id = str(uuid.uuid4())
         evt = threading.Event()

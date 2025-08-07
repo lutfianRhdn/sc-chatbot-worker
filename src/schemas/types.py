@@ -21,14 +21,32 @@ class DataItemType:
 
 # Root object yang membungkus "data" dan metadata
 @strawberry.type
-class RootJSONType:
+class ProcessResponse:
     data: List[DataItemType]
     message: Optional[str] = None
     status: Optional[str] = None
 
-# Jika mau memanfaatkan dataclass + Strawberry untuk response prompt (meniru contohmu)
+
 @strawberry.type
-@dataclass
+class ChatResponseDataItem:
+    chat_id: str
+    prompt: str
+    projectId: str
+@strawberry.type
+class ChatResponse:
+    status: str
+    data: ChatResponseDataItem
+
+@strawberry.type
+class TopicQuestionType:
+    optimal_prompt: str
+    pertanyaan: str
+
+@strawberry.type
+class TopicDataType:
+    topic_name: str
+    questions: List[TopicQuestionType]
+@strawberry.type
 class PromptResponse:
-    project_id: Optional[str]
-    prompt: Optional[JSON]
+    project_id: str
+    prompt: List[TopicDataType]
