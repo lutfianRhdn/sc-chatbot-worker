@@ -1,7 +1,6 @@
 import strawberry
 from typing import List, Optional
 from strawberry.scalars import JSON
-from dataclasses import dataclass
 
 # Untuk sub-process yang muncul berulang dan punya struktur mirip
 @strawberry.type
@@ -26,9 +25,8 @@ class RootJSONType:
     message: Optional[str] = None
     status: Optional[str] = None
 
-# Jika mau memanfaatkan dataclass + Strawberry untuk response prompt (meniru contohmu)
+# Response type for prompt queries (using strawberry.type only for Python 3.10 compatibility)
 @strawberry.type
-@dataclass
 class PromptResponse:
-    project_id: Optional[str]
-    prompt: Optional[JSON]
+    project_id: Optional[str] = None
+    prompt: Optional[JSON] = None
