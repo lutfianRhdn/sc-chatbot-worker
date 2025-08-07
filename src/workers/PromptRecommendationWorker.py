@@ -198,7 +198,7 @@ class PromptRecommendationWorker(Worker):
     
     def generatePrompt(self,id,message,data):
         m_id= message['messageId']
-        project_id = data['projectId']
+        project_id = data['project_id']
         keyword = data['keyword']
         topics= data['topics']
         start_date = data['start_date']

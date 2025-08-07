@@ -153,7 +153,7 @@ class VectorWorker(Worker):
         Example method to test the worker functionality.
         Replace this with your actual worker methods.
         """
-        projectId = data.get("projectId", "")
+        projectId = data.get("project_id", "")
         keyword = data.get("keyword", "")
         start_date = data.get("start_date", "")
         end_date = data.get("end_date", "")
