@@ -42,6 +42,10 @@ RestApiWorkerConfig={
     'port': port,
 }
 
+GraphQLWorkerConfig={
+    'port': 8000,  # Different port from REST API
+}
+
 CRAGWorkerConfig={
     "database": database['database_name'],
     "connection_string": database['connection_string'],
@@ -103,6 +107,7 @@ allConfigs = {
     "PromptRecommendationWorker": PromptRecommendationWorkerConfig,
     "RabbitMQWorker": RabbitMQWorkerConfig,
     "RestApiWorker": RestApiWorkerConfig,
+    "GraphQLWorker": GraphQLWorkerConfig,
     "CRAGWorker": CRAGWorkerConfig,
     "LogicalFallacyPromptWorker": LogicalFallacyPromptWorkerConfig,
     "SMTConverterWorker": SMTConverterWorkerConfig,
