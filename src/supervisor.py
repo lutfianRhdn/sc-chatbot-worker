@@ -11,7 +11,7 @@ from utils.log import log
 from utils.handleMessage import sendMessage,convertMessage
 import psutil
 
-from config.workerConfig import CacheWorkerConfig, CounterExampleCreatorWorkerConfig, DatabaseInteractionWorkerConfig, LogicalFallacyClassificationWorkerConfig, LogicalFallacyPromptWorkerConfig, LogicalFallacyResponseWorkerConfig,allConfigs, SMTConverterWorkerConfig, VectorWorkerConfig, PromptRecommendationWorkerConfig, RabbitMQWorkerConfig, RestApiWorkerConfig, CRAGWorkerConfig
+from config.workerConfig import CacheWorkerConfig, CounterExampleCreatorWorkerConfig, DatabaseInteractionWorkerConfig, LogicalFallacyClassificationWorkerConfig, LogicalFallacyPromptWorkerConfig, LogicalFallacyResponseWorkerConfig,allConfigs, SMTConverterWorkerConfig, VectorWorkerConfig, PromptRecommendationWorkerConfig, RabbitMQWorkerConfig, RestApiWorkerConfig, CRAGWorkerConfig,GraphQLWorkerConfig
 
 #########
 # dont edit this class except worker conf
@@ -26,20 +26,21 @@ class Supervisor:
         ####
         # just edit this part to add your workers
         ####
-        self.create_worker("CacheWorker", count=1, config=CacheWorkerConfig)
+        # self.create_worker("CacheWorker", count=1, config=CacheWorkerConfig)
  
         self.create_worker("RestApiWorker", count=1, config=RestApiWorkerConfig)
-        self.create_worker("CRAGWorker", count=1, config=CRAGWorkerConfig)
-        self.create_worker("DatabaseInteractionWorker", count=1, config=DatabaseInteractionWorkerConfig)
-        self.create_worker("VectorWorker", count=1, config=VectorWorkerConfig)
-        self.create_worker("PromptRecommendationWorker", count=1, config=PromptRecommendationWorkerConfig)
-        self.create_worker("RabbitMQWorker", count=1, config=RabbitMQWorkerConfig)
-        self.create_worker("LogicalFallacyPromptWorker", count=1, config=LogicalFallacyPromptWorkerConfig)
-        self.create_worker("SMTConverterWorker", count=1, config=SMTConverterWorkerConfig)
-        self.create_worker("CounterExampleCreatorWorker", count=1, config=CounterExampleCreatorWorkerConfig)
-        self.create_worker("LogicalFallacyClassificationWorker", count=1, config=LogicalFallacyClassificationWorkerConfig)
+        self.create_worker("GraphQLWorker", count=1, config=GraphQLWorkerConfig)
+        # self.create_worker("CRAGWorker", count=1, config=CRAGWorkerConfig)
+        # self.create_worker("DatabaseInteractionWorker", count=1, config=DatabaseInteractionWorkerConfig)
+        # self.create_worker("VectorWorker", count=1, config=VectorWorkerConfig)
+        # self.create_worker("PromptRecommendationWorker", count=1, config=PromptRecommendationWorkerConfig)
+        # self.create_worker("RabbitMQWorker", count=1, config=RabbitMQWorkerConfig)
+        # self.create_worker("LogicalFallacyPromptWorker", count=1, config=LogicalFallacyPromptWorkerConfig)
+        # self.create_worker("SMTConverterWorker", count=1, config=SMTConverterWorkerConfig)
+        # self.create_worker("CounterExampleCreatorWorker", count=1, config=CounterExampleCreatorWorkerConfig)
+        # self.create_worker("LogicalFallacyClassificationWorker", count=1, config=LogicalFallacyClassificationWorkerConfig)
 
-        self.create_worker("LogicalFallacyResponseWorker", count=1, config=LogicalFallacyResponseWorkerConfig)
+        # self.create_worker("LogicalFallacyResponseWorker", count=1, config=LogicalFallacyResponseWorkerConfig)
 
         ####
         # until this part

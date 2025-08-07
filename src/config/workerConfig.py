@@ -41,6 +41,10 @@ RabbitMQWorkerConfig={
 RestApiWorkerConfig={
     'port': port,
 }
+GraphQLWorkerConfig={
+    'port': int(port) +1,
+
+}
 
 CRAGWorkerConfig={
     "database": database['database_name'],
