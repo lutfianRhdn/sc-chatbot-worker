@@ -229,7 +229,7 @@ class CacheWorker(Worker):
             
             if value is None:
                 return {
-                    "destination": ["RestApiWorker/onProcessed/"],
+                    "destination": ["GraphQLWorker/onProcessed/"],
                     "data":[]
                 }
             
@@ -245,7 +245,7 @@ class CacheWorker(Worker):
             log(f"Cache retrieved: {full_key}", 'info')
             
             return {
-                "destination": ["RestApiWorker/onProcessed/"],
+                "destination": ["GraphQLWorker/onProcessed/"],
                 "data": parsed_value if parsed_value is not None else value,
             }
             
