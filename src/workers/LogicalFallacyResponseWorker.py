@@ -318,9 +318,20 @@ class LogicalFallacyResponseWorker(Worker):
         Example method to test the worker functionality.
         Replace this with your actual worker methods.
         """
+        self.sendToOtherWorker(
+            destination=[f"DatabaseInteractionWorker/createNewProgress/{message['data']['chat_id']}"],
+            data={
+                "process_name": self.process_name,
+                "input": message['data']['response'],
+                "output": "",
+            },
+            messageId= str(uuid.uuid4())
+        )
         data = message.get("data", {})
         response = data['response']
         fol_transformation = self.fol_transformation(response)
+        
+       
         self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
                 data={
