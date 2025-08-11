@@ -65,6 +65,7 @@ class Query:
           data=caceData
       )
       if len(result["result"]) == 0:
+          print(projectId)
           result = worker.sendToOtherWorker(
               destination=[f"DatabaseInteractionWorker/getPrompt/{projectId}"],
               data={"key": projectId}
@@ -80,6 +81,8 @@ class Query:
               }
           )
       print(f"Result from worker: {result}")
+      if result['result'] == 'null' or len(result['result']) == 0:
+            return PromptResponse(project_id=projectId, prompt=[])
       result_data = result["result"][0]
       project_id = result_data["project_id"]
       prompts = result_data["prompts"]
