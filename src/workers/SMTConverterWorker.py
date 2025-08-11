@@ -14,6 +14,8 @@ import time
 from cvc5.utils.cvc import CVCGenerator
 from  utils.log import log 
 from utils.handleMessage import sendMessage, convertMessage
+from openai import AzureOpenAI
+import json
 
 from .Worker import Worker
 
@@ -262,6 +264,7 @@ class SMTConverterWorker(Worker):
 
         try:
             script = CVCGenerator(fol_standardized).generateCVCScript() 
+            
             self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
                     data={
@@ -277,13 +280,72 @@ class SMTConverterWorker(Worker):
         except Exception as e:
             traceback.print_exc()
             log(f"Error in SMT file conversion: {e}", "error")
-            message['data']['model']= ""
-            message['data']['check_sat'] = "unknown"
-            self.sendToOtherWorker(
-                messageId=message.get("messageId"),
-                destination=["CounterExampleCreatorWorker/counterexample_interpretation/"],
-                data=message["data"])            
+            try:
+                prompt = f"""
+                {{
+                    "instructions": {{
+                        "task": "Konversi ekspresi First Order Logic (FOL) ke format SMT-LIB v2 dengan mempertahankan struktur logika dan relasi semantik. Perhatikan deklarasi sort, fungsi, kuantor, dan operator logika sesuai contoh.",
+                        "persona": "Ahli logika komputasional yang memahami sintaks SMT-LIB v2 dan konversi formal dari FOL",
+                        "method": "1. Identifikasi semua predikat/konstanta unik\n2. Deklarasikan BoundSet/UnboundSet untuk domain\n3. Konversi kuantor ∃→exists, ∀→forall\n4. Ubah operator logika: ∧→and, →→=>, ¬→not (atau gunakan prefix 'not' pada predikat)\n5. Pastikan hierarki kurung sesuai SMT-LIB\n6. Tambahkan boilerplate (set-logic, check-sat, dll)",
+                        "output_format": "JSON dengan field 'smt_lib_v2' berisi string kode SMT-LIB v2 yang valid",
+                        "handling_unknown": "Jika menemukan simbol tidak dikenal, asumsikan sebagai UnboundSet dan buat deklarasi implisit dengan pola 'declare-fun [nama] () UnboundSet'"
+                    }},
+                    "context": {{
+                        "relevant_information": "Format SMT-LIB v2 memerlukan deklarasi eksplisit untuk semua sort, fungsi, dan konstanta. Predikat bernegasi (¬P) harus diubah menjadi fungsi terpisah dengan prefix 'not' (misal: notSesuai) atau menggunakan operator 'not' tergantung pola contoh.",
+                        "examples": [
+                            {{
+                                "input_queries": {{
+                                    "fol": "(∃x ∃y (Pasal(x) ∧ Dalam(x, uu_tni) ∧ TantanganDigital(y) ∧ GeopolitikModern(y) ∧ ¬Sesuai(x, y))) ∧ (∃x ∃y (Pasal(x) ∧ Dalam(x, uu_tni) ∧ MemperlemahPosisi(y) ∧ Berisiko(x, y))) → (∀x (Pasal(x) ∧ Dalam(x, uu_tni) → Usang(x) ∧ PerluRevisi(x, total)))"
+                                }},
+                                "smt_lib_v2": "(set-logic ALL)\n(set-option :produce-models true)\n(declare-sort BoundSet 0)\n(declare-sort UnboundSet 0)\n(declare-fun uu_tni () UnboundSet)\n(declare-fun total () UnboundSet)\n(declare-fun Pasal (BoundSet) Bool)\n(declare-fun Dalam (BoundSet UnboundSet) Bool)\n(declare-fun TantanganDigital (BoundSet) Bool)\n(declare-fun GeopolitikModern (BoundSet) Bool)\n(declare-fun notSesuai (BoundSet BoundSet) Bool)\n(declare-fun MemperlemahPosisi (BoundSet) Bool)\n(declare-fun Berisiko (BoundSet BoundSet) Bool)\n(declare-fun Usang (BoundSet) Bool)\n(declare-fun PerluRevisi (BoundSet UnboundSet) Bool)\n(assert (not (=> (and (exists ((x BoundSet)) (exists ((y BoundSet)) (and (Pasal x) (and (Dalam x uu_tni) (and (TantanganDigital y) (and (GeopolitikModern y) (notSesuai x y))))))) (exists ((x BoundSet)) (exists ((y BoundSet)) (and (Pasal x) (and (Dalam x uu_tni) (and (MemperlemahPosisi y) (Berisiko x y))))))) (forall ((x BoundSet)) (=> (and (Pasal x) (Dalam x uu_tni)) (and (Usang x) (PerluRevisi x total)))))))\n(check-sat)\n(get-model)"
+                            }}
+                        ],
+                        "input_queries": {{
+                            "fol": {fol}
+                        }},
+                        "smt_lib_v2": ""
+                    }}
+                }}
+                """
+
+                client = AzureOpenAI(
+                    azure_endpoint = "https://crag-skripsi.openai.azure.com/", 
+                    api_key="2MQNDFv4maWOJtsHOTV4J1grfhWkmfgIzwwX20OTX3aLs5eml1VTJQQJ99BEACYeBjFXJ3w3AAABACOGf0dD",  
+                    api_version="2025-01-01-preview"
+                    )
+
+                response = client.chat.completions.create(
+                    model="gpt-4.1", # model = "deployment_name".
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+
+                respons = response.choices[0].message.content
+                # print("SUDAH KELUAR")
+                data = json.loads(respons)
+                script = data["smt_lib_v2"]
+                
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": message["data"]["process_name"],
+                        "sub_process_name": "Generate SMT file",
+                        "input": fol_standardized,
+                        "output": script,
+                    },
+                    messageId=(str(uuid.uuid4()))
+                )
+                self.smt_solver(script,message)
+            except Exception as e:
+                message['data']['model']= ""
+                message['data']['check_sat'] = "unknown"
+                self.sendToOtherWorker(
+                    messageId=message.get("messageId"),
+                    destination=["CounterExampleCreatorWorker/counterexample_interpretation/"],
+                    data=message["data"])            
             # return f"Terjadi kesalahan: {e}"
+
     def smt_solver(self, smt2_code: str, message):
         
         cvc5_path: str = None

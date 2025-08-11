@@ -88,8 +88,11 @@ class CounterExampleCreatorWorker(Worker):
         kesimpulan = message["data"]['kesimpulan']
         terms_premis = message["data"]['term_premis']
         terms_kesimpulan = message["data"]['terms_kesimpulan']
-        predikat = message["data"]['predikat']
+        atomic_formula_premis = message["data"]['atomic_formula_premis']
+        atomic_formula_kesimpulan = message["data"]['atomic_formula_kesimpulan']
+        messages = message["data"]['messages']
         fol = message["data"]['fol']
+        references = message["data"]['references']
 
         if not isinstance(model, str) or not model.strip():
             print("counterexample_interpretation, ❌ Counterexample tidak valid atau kosong.")
@@ -104,7 +107,8 @@ class CounterExampleCreatorWorker(Worker):
                     kesimpulan=kesimpulan,
                     terms_premis=json.dumps(terms_premis),
                     terms_kesimpulan=json.dumps(terms_kesimpulan),
-                    predikat=json.dumps(predikat),
+                    atomic_formula_premis=json.dumps(atomic_formula_premis),
+                    atomic_formula_kesimpulan=json.dumps(atomic_formula_kesimpulan),
                     fol=fol.replace('"', '\\"'),
                     counterexample=model.replace('"', '\\"')
                 )
@@ -115,19 +119,18 @@ class CounterExampleCreatorWorker(Worker):
                 prompt['context']['relevant_information']['kesimpulan'] = kesimpulan
                 prompt['context']['relevant_information']['terms_premis'] = terms_premis
                 prompt['context']['relevant_information']['terms_kesimpulan'] = terms_kesimpulan
-                prompt['context']['relevant_information']['atomic_formula'] = predikat
+                prompt['context']['relevant_information']['atomic_formula_premis'] = atomic_formula_premis
+                prompt['context']['relevant_information']['atomic_formula_kesimpulan'] = atomic_formula_kesimpulan
                 prompt['context']['relevant_information']['fol'] = fol
                 prompt['context']['input_queries']['hasil_smt_solver'] = model
 
                 filled_prompt = json.dumps(prompt, indent=4)
             log("counterexample_interpretation, 📝 Mengirim prompt ke LLM untuk interpretasi counterexample.", "info")
             # Panggil LLM
+            messages.append({"role": "user", "content": filled_prompt})
             response = self.client.chat.completions.create(
                 model= self.model_name,
-                messages=[
-                    {"role": "system", "content": "Anda adalah pakar logika formal dan reasoning."},
-                    {"role": "user", "content": filled_prompt}
-                ]
+                messages=messages
             )
             hasil = response.choices[0].message.content.strip()
             print("counterexample_interpretation, 📝 Hasil dari LLM:", hasil)
@@ -136,9 +139,11 @@ class CounterExampleCreatorWorker(Worker):
                     hasil = hasil.replace("```json","")
                     hasil = hasil.replace("```","")
                 result_json = json.loads(hasil)
+                messages.append({"role": "assistant", "content": str(result_json)})
                 print("counterexample_interpretation, 📝 Hasil JSON yang di-parse:", result_json)
                     
                 message['data']['interpretasi']= result_json["interpretasi_counter_example"] if "interpretasi_counter_example" in result_json else result_json["interpretasi_counterexample"]
+                message["data"]['messages'] = messages
                 log("counterexample_interpretation, ✅ Interpretasi counterexample berhasil dibuat.", "info")
                 if message['data']['is_eval'] == False:
                     self.sendToOtherWorker(
@@ -153,7 +158,8 @@ class CounterExampleCreatorWorker(Worker):
                                     "kesimpulan": kesimpulan,
                                     "terms_premis": terms_premis,
                                     "terms_kesimpulan": terms_kesimpulan,
-                                    "predikat": predikat,
+                                    "atomic_formula_premis": atomic_formula_premis,
+                                    "atomic_formula_kesimpulan": atomic_formula_kesimpulan,
                                     "fol": fol,
                                     },
                                 "output": message['data']['interpretasi'],

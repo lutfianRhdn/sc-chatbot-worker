@@ -85,7 +85,7 @@ class LogicalFallacyClassificationWorker(Worker):
     # add your worker methods here
     ##########################################
 
-    def fallacy_classification(self, premise,prompt, conclusion, interpretation,fallacy_data, message):
+    def fallacy_classification(self, premise,prompt, conclusion, interpretation,fallacy_data, messages, message):
         prompt_klasifikasi = prompt_klasifikasi_template.format(
             premis=premise,
             kesimpulan=conclusion,
@@ -94,17 +94,15 @@ class LogicalFallacyClassificationWorker(Worker):
             fallacy_data = fallacy_data
         )
 
+        messages.append({"role": "user", "content": prompt_klasifikasi})
         response = self.client.chat.completions.create(
             model= self.model_name,
-            messages=[{
-                "role": "user",
-                "content": prompt_klasifikasi
-            }],
+            messages=messages
         )
 
         llm_response = response.choices[0].message.content.strip()
         parsed = json.loads(llm_response)
-        
+        messages.append({"role": "assistant", "content": str(parsed)})
         if message['data']['is_eval'] == False:
             self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
@@ -129,6 +127,7 @@ class LogicalFallacyClassificationWorker(Worker):
         message['data']['fallacy_type'] = parsed.get("fallacy_type", "Unknown")
         message['data']['fallacy_location'] = parsed.get("fallacy_location", {})
         message['data']['feedback'] = parsed.get("feedback", "Tidak ada feedback.")
+        message['data']['messages'] = messages
         self.sendToOtherWorker(
             messageId=message.get("messageId"),
             destination=["LogicalFallacyPromptWorker/logical_fallacy_prompt_modification/" if message['data']['type'] == 'prompt' else "LogicalFallacyResponseWorker/logical_fallacy_response_modification/"], 
@@ -140,6 +139,7 @@ class LogicalFallacyClassificationWorker(Worker):
         conclusion = message["data"]["kesimpulan"]
         interpretation = message["data"]["interpretasi"]
         prompt = message["data"]["prompt"]
+        messages = message["data"]["messages"]
         log("prepare_classification, 📝 Memulai klasifikasi logical fallacy.", "info")
 
         base_path = os.path.dirname(os.path.abspath(__file__))
@@ -160,6 +160,7 @@ class LogicalFallacyClassificationWorker(Worker):
         conclusion = conclusion,
         interpretation = interpretation,
         fallacy_data = fallacy_data,
+        messages = messages,
         message = message)
 
         

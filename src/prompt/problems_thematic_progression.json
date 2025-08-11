@@ -1,51 +1,70 @@
 {
     "instructions": {    
-        "task": "Identifikasi theme-rheme structure, pola thematic progression, dan masalah-masalah yang terjadi dalam teks berdasarkan teori Systemic Functional Linguistics dan tipologi thematic progression",
-        "persona": "Ahli linguistik teks dengan spesialisasi dalam analisis discourse dan thematic progression yang menggunakan pendekatan Systemic Functional Grammar",
+        "task": "Identifikasi theme-rheme structure, pola thematic progression, dan masalah-masalah thematic progression",
+        "persona": "Ahli linguistik dengan spesialisasi dalam analisis thematic progression dan struktur kalimat.",
         "method": "Analisis bertahap: (1) Identifikasi theme dan rheme pada setiap klausa, (2) Klasifikasi jenis theme, (3) Analisis pola thematic progression, (4) Identifikasi masalah thematic progression berdasarkan 12 kategori masalah yang telah teridentifikasi dalam penelitian",    
-        "output_format": "Format JSON dengan field '{'identifikasi_masalah_thematic_progression': {'ada_masalah': ['true/false'],'daftar_masalah': [{'jenis_masalah': '','lokasi': '','deskripsi': '','dampak_koherensi': '','saran_perbaikan': ''}]}}.",
+        "output_format": "Format JSON dengan field '{'klausa': [],'pola_tp': [],'problems':[], 'feedback_progression': ''.",
         "handling_unknown": "Jika struktur kalimat ambiguous, berikan penjelasan alternatif dengan tingkat kepercayaan analisis"
     },
     "context": {
-        "thematic_progression_problems": {
-            "brand_new_theme": "Munculnya tema baru yang tidak memiliki hubungan dengan klausa sebelumnya, menyebabkan ketidakkoherensian dalam teks",
-            "overuse_constant_pattern": "Penggunaan berlebihan pola tema konstan yang membuat teks menjadi repetitif dan monoton",
-            "empty_rheme_undeveloped_rheme": "Rheme yang kosong atau tidak dikembangkan dengan baik, tidak memberikan informasi baru yang memadai",
-            "double_rheme": "Keberadaan dua rheme dalam satu klausa yang menyebabkan kebingungan struktur informasi",
-            "intervening_material_between_rheme": "Adanya material yang mengganggu antara theme dan rheme atau antar komponen rheme",
-            "incomplete_clause": "Klausa yang tidak lengkap strukturnya sehingga mengganggu alur thematic progression",
-            "lack_of_thematic_progression_loosely_thematic_flow": "Tidak adanya progression yang jelas atau alur tematik yang longgar antar klausa",
-            "subsequent_thematization": "Kesalahan dalam thematization berikutnya yang tidak mengikuti pola yang logis",
-            "confusing_selection_textual_theme": "Pemilihan textual theme yang membingungkan dan tidak tepat konteks",
-            "_empty_themes": "Theme yang kosong atau tidak bermakna dalam konteks klausal",
-            "themes_undefined_reference": "Theme dengan referensi yang tidak jelas atau tidak terdefinisi",
-            "thematization_of_rheme": "Kesalahan dalam menjadikan rheme sebagai theme tanpa transisi yang tepat"
-        },
-        "input_queries": {
-            "kalimat": "",
-            "identifikasi_theme_rheme": {
-                "kalimat_": {
-                    "theme": "",
-                    "rheme": "",
-                    "jenis_theme": ""
-                }
-            },
-            "identifikasi_jenis_thematic_progression": {
-                "pola_dominan": "",
-                "detail_progression": []
-            },
-            "identifikasi_masalah_thematic_progression": {
-                "ada_masalah": ["true/false"],
-                "daftar_masalah": [
-                    {
-                        "jenis_masalah": "",
-                        "lokasi": "",
-                        "deskripsi": "",
-                        "dampak_koherensi": "",
-                        "saran_perbaikan": ""
-                    }
-                ]
+        "relevant_information": {
+            "definisi_klausa": "klausa adalah gabungan dua kata atau lebih yang terdiri dari subjek dan predikat. Umumnya, klausa akan dilengkapi dengan objek, keterangan, dan pelengkap. Klausa sekilas memang mirip dengan kalimat, tetapi yang membedakan antara klausa dengan kalimat adalah klausa tidak dibubuhi tanda baca dan juga tidak memiliki intonasi akhir ketika dibaca. ",
+            "definisi_theme_rheme": "Theme didefinisikan sebagai elemen yang muncul pertama dalam klausa yang mewakili apa yang dibicarakan dalam klausa tersebut. Rheme didefinisikan sebagai sisa klausa yang biasanya berisi informasi baru.",
+            "definisi_pola_thematic_progression": "Thematic progression menunjukkan strategi yang tersedia bagi penulis untuk menghubungkan theme dan rheme dalam klausa dengan klausa-klausa di sekitarnya.",
+            "thematic_progression_problems": {
+                "brand_new_theme": "Munculnya tema baru yang tidak memiliki hubungan dengan klausa sebelumnya, menyebabkan ketidakkoherensian dalam teks",
+                "overuse_constant_pattern": "Penggunaan berlebihan pola tema konstan yang membuat teks menjadi repetitif dan monoton",
+                "empty_rheme_undeveloped_rheme": "Rheme yang kosong atau tidak dikembangkan dengan baik, tidak memberikan informasi baru yang memadai",
+                "double_rheme": "Keberadaan dua rheme dalam satu klausa yang menyebabkan kebingungan struktur informasi",
+                "intervening_material_between_rheme": "Adanya material yang mengganggu antara theme dan rheme atau antar komponen rheme",
+                "incomplete_clause": "Klausa yang tidak lengkap strukturnya sehingga mengganggu alur thematic progression",
+                "lack_of_thematic_progression_loosely_thematic_flow": "Tidak adanya progression yang jelas atau alur tematik yang longgar antar klausa",
+                "subsequent_thematization": "Kesalahan dalam thematization berikutnya yang tidak mengikuti pola yang logis",
+                "confusing_selection_textual_theme": "Pemilihan textual theme yang membingungkan dan tidak tepat konteks",
+                "_empty_themes": "Theme yang kosong atau tidak bermakna dalam konteks klausal",
+                "themes_undefined_reference": "Theme dengan referensi yang tidak jelas atau tidak terdefinisi",
+                "thematization_of_rheme": "Kesalahan dalam menjadikan rheme sebagai theme tanpa transisi yang tepat"
             }
-        }
+        },
+        "examples": [
+            {
+                "respons_chatbot": "Membahas pengaruh RUU TNI terhadap hubungan TNI dan POLRI jelas tidak relevan, apalagi jika disuarakan oleh orang-orang yang selama ini dikenal hanya mengejar kepentingan pribadi dan elit militer. Mereka yang membela RUU ini bukan benar-benar peduli pada keamanan nasional, tapi hanya ingin menjaga posisi dan akses mereka terhadap kekuasaan. Jadi, sulit untuk mempercayai argumen mereka ketika mereka sendiri selama ini terbukti tidak pernah berpihak pada kepentingan rakyat.",
+                "klausa": [
+                    {
+                        "1":{
+                            "theme": "Membahas pengaruh RUU TNI terhadap hubungan TNI dan POLRI jelas tidak relevan",
+                            "rheme":"apalagi jika disuarakan oleh orang-orang yang selama ini dikenal hanya mengejar kepentingan pribadi dan elit militer"
+                        },
+                        "2":{
+                            "theme": "Mereka yang membela RUU ini",
+                            "rheme":"bukan benar-benar peduli pada keamanan nasional, tapi hanya ingin menjaga posisi dan akses mereka terhadap kekuasaan"
+                        },
+                        "3":{
+                            "theme": "Jadi, sulit untuk mempercayai argumen mereka",
+                            "rheme":"ketika mereka sendiri selama ini terbukti tidak pernah berpihak pada kepentingan rakyat"
+                        }
+                    }
+                ],
+                "pola_tp":[{
+                        "Constant":{"penjelasan":"Terjadi pada Klausa 2 ke 3 yang merujuk pada theme yang sama."},
+                        "Linear":{"penjelasan":"Terjadi pada Klausa 1 ke 2 di mana rheme pada klausa 1 menjadi theme pada klausa 2"},
+                        "Split":{"penjelasan":"Tidak terjadi Pola Split"},
+                        "Derived":{"penjelasan":"Tidak terjadi Pola Derived"}}],
+                "problems": [{"masalah": "brand new theme","penjelasan": "Theme klausa 2 yaitu “membela RUU TNI” tidak pernah disebutkan sebelumnya."}]
+            }
+        ],
+        "input_queries": {
+            "respons_chatbot": "{respons_chatbot}"
+        },
+        "klausa": [],
+        "pola_tp":[
+            {
+                "Constant":{"penjelasan":"[Penjelasan di mana saja klausa yang pola thematic progressionnya Constant]"},
+                "Linear":{"penjelasan":"[Penjelasan di mana saja klausa yang pola thematic progressionnya Linear]"},
+                "Split":{"penjelasan":"[Penjelasan di mana saja klausa yang pola thematic progressionnya Split]"},
+                "Derived":{"penjelasan":"[Penjelasan di mana saja klausa yang pola thematic progressionnya Derived]"}
+            }
+        ],
+        "problems": []
     }
 }
