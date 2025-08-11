@@ -44,73 +44,8 @@ def _map_data_list(raw) -> List[DataItemType]:
 @strawberry.type
 class Query:
   """GraphQL Query root type"""
-  @strawberry.field
-  def prompt(self,projectId:str,prompt:str,info: strawberry.Info)-> ChatResponse:
-      """Fetch a prompt response for a given project ID and prompt"""
-      worker = info.context.get('worker')
-     
-      message = worker.sendToOtherWorker(
-              destination=["DatabaseInteractionWorker/createNewHistory/"],
-              data={
-                  "question": prompt,
-                  "projectId": projectId
-              }
-          )
-      id = message.get("result", [{}])[0].get("_id", "unknown_id")
-      
-      sendMessage(
-      conn=worker.conn,
-      messageId=id,
-      status="complated",
-      destination=[f"LogicalFallacyPromptWorker/removeLFPrompt/"],
-      data={
-              "prompt": prompt,
-              "id": id,
-              "projectId": projectId
-          }
-      )
-      return ChatResponse(
-        status="completed",
-       data= ChatResponseDataItem(
-         chat_id=id,
-          prompt=prompt,
-          projectId=projectId
-       )
 
-    )
-  @strawberry.field
-  def chatResponseLFU(self,response:str,projectId:str,info: strawberry.Info)-> ChatResponse:
-      """Fetch a chat response for a given project ID and response text"""
-      worker = info.context.get('worker')
-      
-      message = worker.sendToOtherWorker(
-          destination=["DatabaseInteractionWorker/createNewHistory/"],
-          data={
-              "question": response,
-              "projectId": projectId
-          }
-      )
-      id = message.get("result", [{}])[0].get("_id", "unknown_id")
 
-      sendMessage(
-      conn=worker.conn,
-      messageId=id,
-      status="complated",
-          destination=["LogicalFallacyResponseWorker/removeLFResponse/"],
-          data={
-              "response":response,
-              "chat_id": id
-          }
-      )
-      return ChatResponse(
-        status="completed",
-       data= ChatResponseDataItem(
-         chat_id=id,
-          prompt=response,
-          projectId=projectId
-       )
-
-    )
         
       
       

@@ -11,6 +11,7 @@ from strawberry.flask.views import GraphQLView
 from schemas.schema import schema
 import strawberry
 from schemas.queries import Query
+from schemas.mutations import Mutation
 
 
 # Simple GraphQL-like implementation without external dependencies
@@ -38,6 +39,7 @@ class GraphQLWorker:
         self.app = Flask(__name__)
         self.schema = strawberry.federation.Schema(
             query=Query,
+            mutation=Mutation,
             enable_federation_2=True,
         )
         self.setup_routes()

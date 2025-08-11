@@ -1,9 +1,11 @@
 import strawberry
 from schemas.queries import Query
+from schemas.mutations import Mutation
 
 # Create the schema with proper federation support
 schema = strawberry.federation.Schema(
     query=Query,
+    mutation=Mutation,
     enable_federation_2=True,
 )
 
