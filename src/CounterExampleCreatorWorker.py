@@ -1,7 +1,6 @@
 import asyncio
 from multiprocessing.connection import Connection
 import threading
-import traceback
 import uuid
 import time
 from utils.loadPromptTemplate import load_prompt_template
@@ -89,14 +88,11 @@ class CounterExampleCreatorWorker(Worker):
         kesimpulan = message["data"]['kesimpulan']
         terms_premis = message["data"]['term_premis']
         terms_kesimpulan = message["data"]['terms_kesimpulan']
-        if( message['data']['type'] !='prompt'):
-            atomic_formula_premis = message["data"]['atomic_formula_premis']
-            atomic_formula_kesimpulan = message["data"]['atomic_formula_kesimpulan']
-        else:
-            predikat = message["data"]['predikat']
-        messages = message["data"]['messages'] if message["data"]['type'] !="prompt" else []
+        atomic_formula_premis = message["data"]['atomic_formula_premis']
+        atomic_formula_kesimpulan = message["data"]['atomic_formula_kesimpulan']
+        messages = message["data"]['messages']
         fol = message["data"]['fol']
-        # references = message["data"]['references']
+        references = message["data"]['references']
 
         if not isinstance(model, str) or not model.strip():
             print("counterexample_interpretation, ❌ Counterexample tidak valid atau kosong.")
@@ -104,28 +100,18 @@ class CounterExampleCreatorWorker(Worker):
         if 'prompt_interpretation_template' not in globals():
             print("counterexample_interpretation, ❌ Template interpretasi tidak ditemukan.")
         try:
-            print(message['data'])
             if( message['data']['type'] =='prompt'):
-                print(f'counterexample_interpretation, 📝 Mengisi template interpretasi counterexample dengan data pengguna.')
-                print(f'Prompt Pengguna: {prompt_pengguna}')
-                print(f'Premis: {premis}')
-                print(f'Kesimpulan: {kesimpulan}')
-                print(f'Terms Premis: {terms_premis}')
-                print(f'Terms Kesimpulan: {terms_kesimpulan}')
-                print(f'Predikat: {predikat}')
-                print(f'FOL: {fol}')
-                print(f'Model: {model}')
                 filled_prompt = prompt_interpretation_template.format(
                     kalimat=prompt_pengguna,
                     premis=json.dumps(premis),
                     kesimpulan=kesimpulan,
                     terms_premis=json.dumps(terms_premis),
                     terms_kesimpulan=json.dumps(terms_kesimpulan),
-                    predikat=json.dumps(predikat),
+                    atomic_formula_premis=json.dumps(atomic_formula_premis),
+                    atomic_formula_kesimpulan=json.dumps(atomic_formula_kesimpulan),
                     fol=fol.replace('"', '\\"'),
                     counterexample=model.replace('"', '\\"')
                 )
-                print(f"prompt: {filled_prompt}")
             else: 
                 prompt = load_prompt_template("interpretasi_counter_example.json")
                 prompt['context']['relevant_information']['respons_chatbot'] = prompt_pengguna
@@ -139,7 +125,7 @@ class CounterExampleCreatorWorker(Worker):
                 prompt['context']['input_queries']['hasil_smt_solver'] = model
 
                 filled_prompt = json.dumps(prompt, indent=4)
-            print("counterexample_interpretation, 📝 Mengirim prompt ke LLM untuk interpretasi counterexample.", "info")
+            log("counterexample_interpretation, 📝 Mengirim prompt ke LLM untuk interpretasi counterexample.", "info")
             # Panggil LLM
             messages.append({"role": "user", "content": filled_prompt})
             response = self.client.chat.completions.create(
@@ -172,9 +158,8 @@ class CounterExampleCreatorWorker(Worker):
                                     "kesimpulan": kesimpulan,
                                     "terms_premis": terms_premis,
                                     "terms_kesimpulan": terms_kesimpulan,
-                                    "atomic_formula_premis": atomic_formula_premis if( message['data']['type'] !='prompt') else "",
-                                    "atomic_formula_kesimpulan": atomic_formula_kesimpulan if( message['data']['type'] !='prompt') else "",
-                                    "predikat": predikat if( message['data']['type'] =='prompt') else "",
+                                    "atomic_formula_premis": atomic_formula_premis,
+                                    "atomic_formula_kesimpulan": atomic_formula_kesimpulan,
                                     "fol": fol,
                                     },
                                 "output": message['data']['interpretasi'],
@@ -197,8 +182,6 @@ class CounterExampleCreatorWorker(Worker):
                 }
             
         except Exception as e:
-            traceback.print_exc()
-            log(f"counterexample_interpretation, ❌ Terjadi kesalahan internal: {str(e)}", "error")
             return {"counterexample_interpretation": f"❌ Terjadi kesalahan internal: {str(e)}"}
 
 
