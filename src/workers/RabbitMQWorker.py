@@ -1,3 +1,5 @@
+import asyncio
+import json
 from multiprocessing.connection import Connection
 import threading
 import uuid
@@ -45,6 +47,7 @@ class RabbitMQWorker(Worker):
           
           # Initialize RabbitMQ connection
           parameters = pika.URLParameters(config['connection_string'])
+          self.parameters = parameters
           self.connection = pika.BlockingConnection(parameters)
           self.consumeChannel = self.connection.channel()
           self.produceChannel = self.connection.channel()
@@ -57,8 +60,11 @@ class RabbitMQWorker(Worker):
           self.produceChannel.queue_declare(queue=self.produceQueue, durable=True)
           self.produceChannel.queue_declare(queue=self.produceCompensationQueue, durable=True)
           
+          t1 = threading.Thread(target=self.consumeMessage)
+          t1.daemon = True  # Daemonize thread
+          t1.start()  # Start the thread
           
-          self.consumeMessage()
+          asyncio.run(self.listen_task())  # Start the async listener task          
             
         except Exception as e:
           traceback.print_exc()
@@ -67,25 +73,8 @@ class RabbitMQWorker(Worker):
           
           log(f"Failed to connect to RabbitMQ: {e}", "error")
           return
-        #### until this part
-        # start background threads *before* blocking server
-        threading.Thread(target=self.listen_task, daemon=True).start()
-        threading.Thread(target=self.health_check, daemon=True).start()
 
-        # asyncio.run(self.listen_task())
-        self.health_check()
-
-
-    def health_check(self):
-        """Send a heartbeat every 10s."""
-        while True:
-            sendMessage(
-                conn=RabbitMQWorker.conn,
-                messageId="heartbeat",
-                status="healthy"
-            )
-            time.sleep(10)
-    def listen_task(self):
+    async def listen_task(self):
         while True:
             try:
                 if RabbitMQWorker.conn.poll(1):  # Check for messages with 1 second timeout
@@ -100,6 +89,7 @@ class RabbitMQWorker(Worker):
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(param,message['data'])
+                    await asyncio.sleep(0.1)  # Yield control to the event loop
             except EOFError:
                 break
             except Exception as e:
@@ -146,17 +136,25 @@ class RabbitMQWorker(Worker):
           print("[*] Stopped consuming")
       except Exception as e:
           log(f"Error consuming from queue: {e}", 'error')
-    def produceMessaage(self, queue_name: str, data: dict) -> None:
+    def produceMessage(self, queue_name: str, data: dict) -> None:
         try:
-            self.produceChannel.basic_publish(
-                exchange='topicExchange',
+            connection = pika.BlockingConnection(self.parameters)
+            produceChannel = connection.channel()
+            produceChannel.queue_declare(queue=queue_name, durable=True)
+            produceChannel.basic_publish(
+                exchange='',
                 routing_key=queue_name,
-                body=data,
+                body=json.dumps(data),
                 properties=pika.BasicProperties(
-                    project_id=data.get('project_id', 'default_project'),
+                     headers={
+                        'project_id': data.get('project_id', ''),
+                    },
                     delivery_mode=2,  # make message persistent
                 )
             )
+            produceChannel.close()
+            connection.close()
+             
             print(f"[x] Sent message to queue: {queue_name}")
         except Exception as e:
             log(f"Error producing message to queue {queue_name}: {e}", 'error')

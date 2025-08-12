@@ -86,7 +86,6 @@ class DatabaseInteractionWorker(Worker):
             param= destSplited[2]
             instance_method = getattr(self,method)
             result = instance_method(id = param, data = message.get("data", {}))
-              
             sendMessage(
                 conn=self.conn, 
                 status="completed",
@@ -114,66 +113,17 @@ class DatabaseInteractionWorker(Worker):
     prompts = self._db['prompts'].find({"project_id":id})
     print(prompts)
     return {"data":list(prompts),"destination":[f"GraphQLWorker/onProcessed/"]}
-  
+
   def getTweets(self, id,data):
-    if not self._isBusy:
       try:
-        self._isBusy = True
-      
-        start_date = data.get("start_date", "")
-        end_date = data.get("end_date", "")
-        keyword = data.get("keyword", "")
-
-        collection = self._dbTweets['tweets']
-        # Query
-        # print(keyword.replace(' ','|'),"keyword")
-        match_stage = {
-              '$match': {
-                  'full_text': {'$regex': keyword.replace(' ','|'), '$options': 'i'}
-              }
-          }
-          
-        pipeline = [match_stage]
-
-          # Add date filtering if both start_date and end_date are provided
-        if start_date and end_date:
-          start_datetime = datetime.strptime(f"{start_date} 00:00:00 +0000", "%Y-%m-%d %H:%M:%S %z")
-          end_datetime = datetime.strptime(f"{end_date} 23:59:59 +0000", "%Y-%m-%d %H:%M:%S %z")
-          # print(f"Filtering tweets from {start_datetime} to {end_datetime}")
-          
-          add_fields_stage = {
-              '$addFields': {
-                  'parsed_date': {'$toDate': '$created_at'}
-              }
-          }
-          match_date_stage = {
-              '$match': {
-                  'parsed_date': {'$gte': start_datetime, '$lte': end_datetime}
-              }
-          }
-
-          pipeline.extend([add_fields_stage, match_date_stage])
-          
-          # Project stage to include only specific fields
-        project_stage = {
-              '$project': {
-                  '_id' : 1,
-                  'full_text': 1,
-                  'username': 1,
-                  'in_reply_to_screen_name': 1,
-                  'tweet_url': 1
-              }
-          }
-        pipeline.append(project_stage)
-          # Execute the aggregation pipeline
-        cursor = collection.aggregate(pipeline)
-        
-          # return list(cursor)
-
+        project_id = id
+        print(f"Fetching tweets for project_id: {project_id}")
+        cursor = self._dbTweets['documents'].find({
+          "projectId": project_id,
+        })
         self._isBusy = False
-        # print(list(cursor))
         return {"data": list(cursor), "destination": [
-          f"VectorWorker/createVector/{id}"
+          f"VectorWorker/createVector/{id}",
           f"PromptRecommendationWorker/onTweetComing/{id}"
           ]}
       except Exception as e:
@@ -326,6 +276,13 @@ class DatabaseInteractionWorker(Worker):
   def createNewPrompt(self,id,data):
     try:
       # print(f"Creating new prompt  with data: {data}")
+      if not data.get("project_id"):
+        raise ValueError("project_id is required to create a new prompt")
+      isExists = self._db['prompts'].find_one({"project_id": data['project_id']})
+
+      if isExists:
+        print(f"Prompt already exists for project_id: {data['project_id']}")
+        return {"data": [], "destination": ["supervisor"]}
       created = self._db['prompts'].insert_one(data)
       print(f"New prompt created with id: {created.inserted_id}")
       return {"data":[{"_id":created.inserted_id}],"destination":["supervisor"]}
