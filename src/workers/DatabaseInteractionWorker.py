@@ -20,7 +20,7 @@ class DatabaseInteractionWorker(Worker):
   # dont edit this part
   ################
   _instanceId: str    
-  isBusy: bool = False
+  _isBusy: bool = False
   _client: MongoClient 
   _db_name: str 
   conn: Connection
@@ -65,7 +65,7 @@ class DatabaseInteractionWorker(Worker):
         # Change poll(1) to poll(0.1) to reduce blocking time
           if DatabaseInteractionWorker.conn.poll(0.1):  # Shorter timeout
             message = self.conn.recv()
-            if(self.isBusy):
+            if(self._isBusy):
                 print("DatabaseInteractionWorker is busy, ignoring message.")
                 self.sendToOtherWorker(
                     messageId=message.get("messageId"),
@@ -75,7 +75,7 @@ class DatabaseInteractionWorker(Worker):
                     reason="SERVER_BUSY"
                 )
                 continue
-            self.isBusy =True
+            self._isBusy =True
             dest = [
                 d
                 for d in message["destination"]
@@ -94,7 +94,7 @@ class DatabaseInteractionWorker(Worker):
                 messageId=message["messageId"],
                 data=convertObjectIdToStr(result.get('data', [])),
             )
-            self.isBusy = False
+            self._isBusy = False
       
         except EOFError:
             log("Connection closed by supervisor",'error')
