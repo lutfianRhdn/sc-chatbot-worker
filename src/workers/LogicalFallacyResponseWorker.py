@@ -417,7 +417,7 @@ class LogicalFallacyResponseWorker(Worker):
                 messageId=(str(uuid.uuid4()))
             )
         if fol_transformation['fol'] == "":
-              self.sendToOtherWorker(
+            self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
                 data={
                     "process_name": message["data"]["process_name"],
