@@ -1,4 +1,3 @@
-import asyncio
 from multiprocessing.connection import Connection
 import threading
 import uuid
@@ -70,11 +69,23 @@ class RabbitMQWorker(Worker):
           return
         #### until this part
         # start background threads *before* blocking server
-        # threading.Thread(target=self.listen_task, daemon=True).start()
+        threading.Thread(target=self.listen_task, daemon=True).start()
+        threading.Thread(target=self.health_check, daemon=True).start()
 
-        asyncio.run(self.listen_task())
+        # asyncio.run(self.listen_task())
+        self.health_check()
 
-    async def listen_task(self):
+
+    def health_check(self):
+        """Send a heartbeat every 10s."""
+        while True:
+            sendMessage(
+                conn=RabbitMQWorker.conn,
+                messageId="heartbeat",
+                status="healthy"
+            )
+            time.sleep(10)
+    def listen_task(self):
         while True:
             try:
                 if RabbitMQWorker.conn.poll(1):  # Check for messages with 1 second timeout
@@ -88,8 +99,7 @@ class RabbitMQWorker(Worker):
                     method = destSplited[1]
                     param= destSplited[2]
                     instance_method = getattr(self,method)
-                    instance_method(message)
-                    asyncio.sleep(0.01)  # Allow other async tasks to run
+                    instance_method(param,message['data'])
             except EOFError:
                 break
             except Exception as e:
@@ -136,7 +146,20 @@ class RabbitMQWorker(Worker):
           print("[*] Stopped consuming")
       except Exception as e:
           log(f"Error consuming from queue: {e}", 'error')
-        
+    def produceMessaage(self, queue_name: str, data: dict) -> None:
+        try:
+            self.produceChannel.basic_publish(
+                exchange='topicExchange',
+                routing_key=queue_name,
+                body=data,
+                properties=pika.BasicProperties(
+                    project_id=data.get('project_id', 'default_project'),
+                    delivery_mode=2,  # make message persistent
+                )
+            )
+            print(f"[x] Sent message to queue: {queue_name}")
+        except Exception as e:
+            log(f"Error producing message to queue {queue_name}: {e}", 'error')
 def main(conn: Connection, config: dict):
     worker = RabbitMQWorker()
     worker.run(conn, config)
