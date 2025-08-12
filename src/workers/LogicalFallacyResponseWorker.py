@@ -105,12 +105,12 @@ class LogicalFallacyResponseWorker(Worker):
                 messages.append({"role": "assistant", "content": str(chain_1)})
                 # update db
                 
-                print(f"❇️ Hasil Chain 1: {chain_1}")
+                # print(f"❇️ Hasil Chain 1: {chain_1}")
                 if(chain_1['premis'] == '' or chain_1['kesimpulan'] == ''):
                     print("❌ Tidak ada Logical Fallacy yang ditemukan dalam respons chatbot.")
                     return {
-                        "premis": "",
-                        "conclusion": "",
+                        "premis": chain_1['premis'],
+                        "conclusion": chain_1['kesimpulan'],
                         "terms_premis": "",
                         "terms_kesimpulan": "",
                         "atomic_formula_premis": "",
@@ -136,8 +136,8 @@ class LogicalFallacyResponseWorker(Worker):
                 
                 chain_2 = remove_json_text(res.choices[0].message.content)
                 messages.append({"role": "assistant", "content": str(chain_2)})
-                print(f"❇️ Hasil Chain 2: {chain_2}")
-                print()
+                # print(f"❇️ Hasil Chain 2: {chain_2}")
+                # print()
             elif chain == "atomic_formula.json":
                 prompt = load_prompt_template(chain)
                 data = fix_json_if_incomplete(chain_2)
@@ -157,8 +157,8 @@ class LogicalFallacyResponseWorker(Worker):
                 chain_3 = remove_json_text(res.choices[0].message.content)
                 messages.append({"role": "assistant", "content": str(chain_3)})
                 
-                print(f"❇️ Hasil Chain 3: {chain_3}")
-                print()
+                # print(f"❇️ Hasil Chain 3: {chain_3}")
+                # print()
             elif chain == "fol.json":
                 prompt = load_prompt_template(chain)
                 data_chain_1 = chain_1
@@ -194,8 +194,8 @@ class LogicalFallacyResponseWorker(Worker):
                 else:
                     fol = "FOL Tidak ada!"
                     print("Kunci 'fol' tidak ditemukan.")
-                print(f"\n\nIni FOL: \n{fol}\n\n")
-                print(f"❇️ Hasil Chain 4: {chain_4}")
+                # print(f"\n\nIni FOL: \n{fol}\n\n")
+                # print(f"❇️ Hasil Chain 4: {chain_4}")
                 print()
 
         fol_transformation_response = {
@@ -207,6 +207,7 @@ class LogicalFallacyResponseWorker(Worker):
             "atomic_formula_kesimpulan": atomic_formula_kesimpulan,
             "fol": fol,
             "messages": messages,
+            "response": response,
             "references": references
         }
         return fol_transformation_response
@@ -243,7 +244,7 @@ class LogicalFallacyResponseWorker(Worker):
         )
         modifikasi_respons = remove_json_text(modifikasi_respons.choices[0].message.content.strip())
         messages.append({"role":"assistant","content":str(modifikasi_respons)})
-        print(f"❇️ Hasil Modifikasi: {modifikasi_respons}")
+        # print(f"❇️ Hasil Modifikasi: {modifikasi_respons}")
         modifikasi_respons = {
             "kalimat_asli": fix_json_if_incomplete(modifikasi_respons)['kalimat_asli'],
             "kalimat_modifikasi": fix_json_if_incomplete(modifikasi_respons)['kalimat_modifikasi'],
@@ -254,7 +255,7 @@ class LogicalFallacyResponseWorker(Worker):
     def logical_fallacy_response_modification(self,message):
         log("LogicalFallacyResponseWorker/logical_fallacy_response_modification, 📝 Memulai modifikasi prompt logical fallacy.", "info")
         print(json.dumps(message, indent=4))
-        if message['data']['fallacy_type'] == "None" or message['data']['fallacy_type'] == None:
+        if message['data']['fallacy_type'] == "None" or message['data']['fallacy_type'] == None or message['data']['fallacy_type'] == "Unknown":
             self.sendToOtherWorker(
                         destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
                         data={
@@ -271,7 +272,8 @@ class LogicalFallacyResponseWorker(Worker):
                 },
                 messageId= str(uuid.uuid4())
             )  
-            log("Loigcal Fallacy Tidak Ditemukan", "warn")
+            log("Logical Fallacy Tidak Ditemukan", "warn")
+            log(f"LogicalFallacyResponseWorker processing completed successfully with No Logical Fallacy. chat_id: {id}", "success")
             return 
         progression = self.thematic_progression(respons_chatbot = message['data']['prompt'], messages=message['data']['messages'])
         messages = progression['messages']
@@ -293,7 +295,7 @@ class LogicalFallacyResponseWorker(Worker):
             },
             messageId=(str(uuid.uuid4()))
         )
-        print(f"🧮 Hasil Identifikasi TP: {progression}")
+        # print(f"🧮 Hasil Identifikasi TP: {progression}")
         print(json.dumps(message, indent=4))
         print(json.dumps(progression, indent=4))
         modified_response = self.modify_response(
@@ -333,18 +335,148 @@ class LogicalFallacyResponseWorker(Worker):
                 "output": str(modified_response['kalimat_keseluruhan']),
             },
             messageId= str(uuid.uuid4())
-        )       
-        self.sendToOtherWorker(
-            destination=[f"DatabaseInteractionWorker/updateFinalAnswer/{message['data']['chat_id']}"],
-            data={
-                "process_name": message["data"]["process_name"],
-                "output": str(modified_response['kalimat_keseluruhan']) if str(modified_response['kalimat_keseluruhan']) != "" else message['data']['prompt']+"\n"+message['data']['references'],
-            },
-            messageId= str(uuid.uuid4())
-        )       
+        )    
+
+        # ====== ITERASI START ======
+        print(f"INI MESSAGE ITERASI: {message['data']['iterasi']}\n\n")
+        iterasi = message['data']['iterasi']
+        iterasi += 1
+        if iterasi == 3:
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateFinalAnswer/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "output": str(modified_response['kalimat_keseluruhan']) if str(modified_response['kalimat_keseluruhan']) != "" else message['data']['prompt']+"\n"+message['data']['references'],
+                },
+                messageId= str(uuid.uuid4())
+            ) 
+            iterasi = 0
+            message['data']['iterasi'] = iterasi
+            log(f"LogicalFallacyResponseWorker processing completed successfully Cause More Than 3 Iteration. chat_id: {id}", "success")
+            
+            
+        elif iterasi == 1 and (message['data']['fallacy_type'] != "None" or message['data']['fallacy_type'] != None or message['data']['fallacy_type'] != "Unknown"):
+            print(f"\nMASUK ITERASI KE {iterasi}\n\n")
+            message['data']['iterasi'] = iterasi
+            iterasi += 1
+            try:
+                # Pola regex: mencari header referensi yang fleksibel
+                pattern = r'(.+?)\s*' \
+                        r'(?:Daftar\s+Referensi|Referensi)' \
+                        r'\s*:?\s*' \
+                        r'((?:\[\d+\][^\n]*\n?)+)' \
+                        r'(\s*.*$)'
+
+                # Flag re.IGNORECASE untuk tidak sensitif terhadap huruf besar/kecil
+                match = re.search(pattern, str(modified_response['kalimat_keseluruhan']), re.DOTALL | re.IGNORECASE)
+
+                if match:
+                    response = match.group(1).strip()
+                    references_list = match.group(2).strip()
+                    closing = match.group(3).strip()
+                    
+                    # Rekonstruksi references dengan penutup
+                    references = "Referensi:\n" + references_list
+                    if closing:
+                        references += "\n\n" + closing
+                else:
+                    # Fallback: jika tidak menemukan header, coba deteksi dari pola [1] URL
+                    fallback_pattern = r'(.+?)\s*(\n\[\d+\][^\n])+(\s.*)'
+                    fallback_match = re.search(fallback_pattern, str(modified_response['kalimat_keseluruhan']), re.DOTALL)
+                    if fallback_match:
+                        response = fallback_match.group(1).strip()
+                        references_part = ''.join(re.findall(r'\n\[\d+\][^\n]*', response)).strip()
+                        closing = fallback_match.group(3).strip()
+                        references = "Referensi:\n" + references_part
+                        if closing:
+                            references += "\n\n" + closing
+                    else:
+                        response = response.strip()
+                        references = ""
+            except Exception as e:
+                response = response
+                references = ""
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/createNewProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "input": response,
+                    "output": "",
+                },
+                messageId= str(uuid.uuid4())
+            )
+            fol_transformation = self.fol_transformation(response, references, messages)
+            
         
-        print(f"📝 Hasil Modifikasi Respons Chatbot: {modified_response}")
+            self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": self.process_name,
+                        "sub_process_name": "FOL Extraction",
+                        "input": response,
+                        "output": fol_transformation,
+                    },
+                    messageId=(str(uuid.uuid4()))
+                )
+            if fol_transformation['fol'] == "":
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": message["data"]["process_name"],
+                        "output": str(modified_response['kalimat_keseluruhan']),
+                    },
+                    messageId= str(uuid.uuid4())
+                )       
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateFinalAnswer/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": self.process_name,
+                        "output": str(modified_response['kalimat_keseluruhan']),
+                    },
+                    messageId= str(uuid.uuid4())
+                )  
+                log("Premis atau Kesimpulan tidak Ditemukan", "warn")
+                log(f"LogicalFallacyResponseWorker processing completed successfully with No FOL. chat_id: {id}", "success")
+                return 
+            self.sendToOtherWorker(
+                destination=["SMTConverterWorker/smt_file_converter_from_response/"],
+                messageId=message.get("messageId"),
+                data={
+                    "fol":fol_transformation['fol'],
+                    'send_back_destionation': 'LogicalFallacyResponseWorker/onProcessed',
+                    'type': 'response',
+                    'prompt': response,
+                    'references': references,
+                    'premis':fol_transformation['premis'],
+                    'kesimpulan':fol_transformation['conclusion'],
+                    'term_premis':fol_transformation['terms_premis'],
+                    'terms_kesimpulan':fol_transformation['terms_kesimpulan'],
+                    'atomic_formula_premis':fol_transformation['atomic_formula_premis'],
+                    'atomic_formula_kesimpulan':fol_transformation['atomic_formula_kesimpulan'],
+                    'messages':fol_transformation['messages'],
+                    'process_name': self.process_name,
+                    'chat_id': message['data']['chat_id'],
+                    'is_eval':False
+                }
+            )
+        else:
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateFinalAnswer/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "output": str(modified_response['kalimat_keseluruhan']) if str(modified_response['kalimat_keseluruhan']) != "" else message['data']['prompt']+"\n"+message['data']['references'],
+                },
+                messageId= str(uuid.uuid4())
+            ) 
+            iterasi = 0
+            message['data']['iterasi'] = iterasi
+            log(f"LogicalFallacyResponseWorker processing completed successfully with Modified Response. chat_id: {id}", "success")
+        # ====== ITERASI END ======      
         
+        print(f"\nINI SEMUA ISI MESSAGE:\n{message['data']}\n\n")
+        return
+        # print(f"📝 Hasil Modifikasi Respons Chatbot: {modified_response}")
         
     def removeLFResponse(self,message)->None:
         """
@@ -354,6 +486,7 @@ class LogicalFallacyResponseWorker(Worker):
         data = message.get("data", {})
         response = data['response']
         messages = []
+        message['data']['iterasi'] = 0
         try:
             # Pola regex: mencari header referensi yang fleksibel
             pattern = r'(.+?)\s*' \
@@ -391,9 +524,7 @@ class LogicalFallacyResponseWorker(Worker):
         except Exception as e:
             response = response
             references = ""
-        
-        print(f"\nINI RESPONSE:\n{response}\n")
-        print(f"\nINI REFERENCE:\n{references}\n")
+
         self.sendToOtherWorker(
             destination=[f"DatabaseInteractionWorker/createNewProgress/{message['data']['chat_id']}"],
             data={
@@ -405,7 +536,7 @@ class LogicalFallacyResponseWorker(Worker):
         )
         fol_transformation = self.fol_transformation(response, references, messages)
         
-       
+        print("MASUK KESINI")
         self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
                 data={
@@ -417,10 +548,10 @@ class LogicalFallacyResponseWorker(Worker):
                 messageId=(str(uuid.uuid4()))
             )
         if fol_transformation['fol'] == "":
-              self.sendToOtherWorker(
+            self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
                 data={
-                    "process_name": message["data"]["process_name"],
+                    "process_name": "Handling Logical Fallacy on Response Chatbot",
                     "output": data['response'],
                 },
                 messageId= str(uuid.uuid4())
@@ -434,6 +565,7 @@ class LogicalFallacyResponseWorker(Worker):
                 messageId= str(uuid.uuid4())
             )  
             log("Premis atau Kesimpulan tidak Ditemukan", "warn")
+            log(f"LogicalFallacyResponseWorker processing completed successfully with No FOL. chat_id: {id}", "success")
             return 
         self.sendToOtherWorker(
             destination=["SMTConverterWorker/smt_file_converter_from_response/"],
@@ -452,6 +584,7 @@ class LogicalFallacyResponseWorker(Worker):
                 'atomic_formula_kesimpulan':fol_transformation['atomic_formula_kesimpulan'],
                 'messages':fol_transformation['messages'],
                 'process_name': self.process_name,
+                'iterasi': 0,
                 'chat_id': data.get('chat_id', 'unknown_chat_id'),
                 'is_eval':False
             }

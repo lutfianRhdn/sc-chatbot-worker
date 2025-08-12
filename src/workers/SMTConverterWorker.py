@@ -423,6 +423,19 @@ class SMTConverterWorker(Worker):
         except Exception as e:
             traceback.print_exc()
             log(f"Error running CVC5: {e}", "error")
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Running SMT Solver",
+                    "input": smt2_code,
+                    "output": {
+                        "check_sat": "-",
+                        "counterexample": "unknown"
+                    },
+                },
+                messageId=(str(uuid.uuid4()))
+            )
             message['data']['model']= '-'
             message['data']['check_sat'] = "unknown"
             self.sendToOtherWorker(
