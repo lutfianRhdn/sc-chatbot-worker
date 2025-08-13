@@ -83,24 +83,13 @@ class VectorWorker(Worker):
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(data=message['data'],id=param, message=message)
-                    asyncio.sleep(0.1)  # Add a small sleep to prevent busy waiting
+                    await asyncio.sleep(0.1)  # Add a small sleep to prevent busy waiting
             except EOFError:
                 break
             except Exception as e:
               print(e)
               log(f"Listener error: {e}",'error' )
               break
-    # def onProcessed(self, msg: dict):
-    #     """
-    #     Called when a worker response comes in.
-    #     msg must contain 'messageId' and 'data'.
-    #     """
-    #     task_id = msg.get("messageId")
-    #     entry = VectorWorker.requests[task_id]
-    #     if not entry:
-    #         return
-    #     entry["response"] = msg.get("data")
-    #     entry["event"].set()
     def sendToOtherWorker(self, destination, messageId: str, data: dict = None) -> None:
       sendMessage(
           conn=VectorWorker.conn,
@@ -257,7 +246,7 @@ class VectorWorker(Worker):
     def insertVector(self,doc):
         print("Inserting vectors into MongoDB Atlas Vector Search...")
         uuids = [str(uuid4()) for _ in range(len(doc))]
-        self.vector_mongo.add_documents(documents=doc, ids=uuids)
+        self.vector_mongo.add_documents(documents=doc, ids=uuids,batch_size=100,)
         print("Vectors inserted successfully.")
 def main(conn: Connection, config: dict):
     worker = VectorWorker()

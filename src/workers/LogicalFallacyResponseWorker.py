@@ -259,7 +259,7 @@ class LogicalFallacyResponseWorker(Worker):
             self.sendToOtherWorker(
                         destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
                         data={
-                            "process_name": message["data"]["process_name"],
+                            "process_name": self.process_name,
                             "output": message['data']['prompt']+"\n"+message['data']['references'],
                         },
                         messageId= str(uuid.uuid4())
@@ -551,7 +551,7 @@ class LogicalFallacyResponseWorker(Worker):
             self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
                 data={
-                    "process_name": "Handling Logical Fallacy on Response Chatbot",
+                    "process_name": self.process_name,
                     "output": data['response'],
                 },
                 messageId= str(uuid.uuid4())

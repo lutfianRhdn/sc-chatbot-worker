@@ -77,13 +77,12 @@ class PromptRecommendationWorker(Worker):
                         for d in message["destination"]
                         if d.split("/", 1)[0] == "PromptRecommendationWorker"
                     ]
-                    # print(f"[*] Received message: {message}")
                     destSplited = dest[0].split('/')
                     method = destSplited[1]
                     param= destSplited[2]
                     instance_method = getattr(self,method)
                     instance_method(id=param,data = message['data'],message=message)
-                    asyncio.sleep(0.1)  # Sleep to prevent busy waiting
+                    await asyncio.sleep(0.1)  # Sleep to prevent busy waiting
             except EOFError:
                 break
             except Exception as e:
@@ -231,6 +230,14 @@ class PromptRecommendationWorker(Worker):
             print(f"[*] Optimal prompt generated: {prompts}")
             print(f"[*] Sending prompts to DatabaseInteractionWorker/createNewPrompt")
             self.sendToOtherWorker(
+                messageId=str(uuid.uuid4()),
+                destination=['RabbitMQWorker/produceMessage/projectStatusQueue'],
+                data={
+                    "chatbot":True,
+                    "project_id": id   
+                }
+            )
+            self.sendToOtherWorker(
                 messageId=message['messageId'],
                 destination=['DatabaseInteractionWorker/createNewPrompt/'],
                 data={
@@ -242,38 +249,7 @@ class PromptRecommendationWorker(Worker):
         except Exception as e:
             traceback.print_exc()
             log(f"Error in onTweetComing: {e}", "error")
-        # self.tweets={
-        #     "messageId":id,
-        #     "data":data
-        #     }
-        # self.evt.set()
-    
-    # def test(self,message)->None:
-    #     """
-    #     Example method to test the worker functionality.
-    #     Replace this with your actual worker methods.
-    #     """
-    #     data = message.get("data", {})
-
-
-    #     # process
-
-
-    #     #send back to RestAPI
-    #     self.sendToOtherWorker(
-    #       messageId=message.get("messageId"),
-    #       destination=["RestApiWorker/onProcessed"],
-    #       data=data
-    #       )
-    #   #   sendMessage(
-    #   #     status="completed",
-    #   #     reason="Test method executed successfully.",
-    #   #     destination=["supervisor"],
-    #   #     data={"message": "This is a test response."}
-    #   # )
-    #     log("Test method called", "info")
-        # return {"status": "success", "data": "This is a test response."}
-
+      
 def main(conn: Connection, config: dict):
     worker = PromptRecommendationWorker()
     worker.run(conn, config)
