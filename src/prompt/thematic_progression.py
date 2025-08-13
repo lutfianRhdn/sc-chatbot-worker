@@ -6,12 +6,34 @@ prompt_progression_template = """
     "method": "Analisis bertahap: (1) Identifikasi theme dan rheme pada setiap klausa, (2) Klasifikasi jenis theme, (3) Analisis pola thematic progression, (4) Identifikasi masalah thematic progression berdasarkan 12 kategori masalah yang telah teridentifikasi dalam penelitian",
     "handling_unknown": "Jika struktur kalimat ambiguous, berikan penjelasan alternatif dengan tingkat kepercayaan analisis"
   }},
-  "output_format": {{
+  "output_format": "Format JSON dengan field{{
     "klausa": [],
-    "pola_tp": [],
-    "problems": [],
-    "feedback_progression": ""
-  }},
+    "pola_tp": [
+      {{
+        "Constant": {{
+          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Constant]"
+        }},
+        "Linear": {{
+          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Linear]"
+        }},
+        "Split": {{
+          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Split]"
+        }},
+        "Derived": {{
+          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Derived]"
+        }}
+      }}
+    ],
+    "masalah_thematic_progression": [
+      {{
+        "klausa": "<nomor klausa>",
+        "kutipan": "<kutipan klausa yang bermasalah>",
+        "jenis_masalah": "<jenis masalah thematic>",
+        "feedback_progression": "<saran perbaikan untuk klausa tersebut>"
+      }}
+    ],
+    "feedback_progression": "<feedback umum tentang kualitas thematic progression dalam teks secara keseluruhan>"
+  }}",
   "context": {{
     "relevant_information": {{
       "definisi_klausa": "Klausa adalah gabungan dua kata atau lebih yang terdiri dari subjek dan predikat. Umumnya, klausa akan dilengkapi dengan objek, keterangan, dan pelengkap. Klausa sekilas memang mirip dengan kalimat, tetapi yang membedakan antara klausa dengan kalimat adalah klausa tidak dibubuhi tanda baca dan juga tidak memiliki intonasi akhir ketika dibaca.",
@@ -83,36 +105,8 @@ prompt_progression_template = """
       }}
     ],
     "input_queries": {{
-      "kalimat": "{{kalimat}}"
+      "kalimat": "{kalimat}"
     }}
-  }},
-  "template_output": {{
-    "klausa": [],
-    "pola_tp": [
-      {{
-        "Constant": {{
-          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Constant]"
-        }},
-        "Linear": {{
-          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Linear]"
-        }},
-        "Split": {{
-          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Split]"
-        }},
-        "Derived": {{
-          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Derived]"
-        }}
-      }}
-    ],
-    "problems": [
-      {{
-        "klausa": "<nomor klausa>",
-        "kutipan": "<kutipan klausa yang bermasalah>",
-        "jenis_masalah": "<jenis masalah thematic>",
-        "feedback_progression": "<saran perbaikan untuk klausa tersebut>"
-      }}
-    ],
-    "feedback_progression": "<feedback umum tentang kualitas thematic progression dalam teks secara keseluruhan>"
   }}
 }}
 """

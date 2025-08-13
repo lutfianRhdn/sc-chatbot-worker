@@ -179,6 +179,7 @@ class LogicalFallacyPromptWorker(Worker):
         prompt_progression = prompt_progression_template.format(
             kalimat=prompt_user
         )
+        print("prompt user progression",prompt_progression)
         response = self.client.chat.completions.create(
             model= self.model_name,
             messages=[{
@@ -277,13 +278,13 @@ class LogicalFallacyPromptWorker(Worker):
                         "process_name": message["data"]["process_name"],
                         "sub_process_name": "Anlysis Semantic Intent",
                         "input": prompt_user,
-                        "output": intent,
-                        "iteration": eval_iteration if eval_iteration is not None else 1
+                        "output": intent
                     },
                     messageId=(str(uuid.uuid4()))
                 )
-
+            print(prompt_user)
             thematic_progression = self.thematic_progression(prompt_user)
+            print(thematic_progression)
             if message['data']['is_eval'] == False:
                 self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
@@ -412,6 +413,7 @@ class LogicalFallacyPromptWorker(Worker):
         return parsed_result
     
     def modify_prompt(self, text, message, intent_relation, fallacy_type, user_intent, modified_intent):
+        print("message_modify",message)
         chat_id = message['data']['chat_id']
         log("success remove logical fallacy from prompt on chatId : "+chat_id,'success')
         self.sendToOtherWorker(
@@ -425,7 +427,7 @@ class LogicalFallacyPromptWorker(Worker):
                     "user_intent": str(user_intent),
                     "modified_intent": str(modified_intent),
                 },
-                "output": text,
+                "output": {"final_output": text,"iteration": message["data"]["eval_iteration"]},
             },
             messageId=(str(uuid.uuid4()))
         )
