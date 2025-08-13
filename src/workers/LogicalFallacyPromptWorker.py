@@ -278,6 +278,7 @@ class LogicalFallacyPromptWorker(Worker):
                         "sub_process_name": "Anlysis Semantic Intent",
                         "input": prompt_user,
                         "output": intent,
+                        "iteration": eval_iteration if eval_iteration is not None else 1
                     },
                     messageId=(str(uuid.uuid4()))
                 )

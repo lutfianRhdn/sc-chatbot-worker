@@ -1,96 +1,118 @@
-prompt_progression_template = """{{
+prompt_progression_template = """
+{{
   "instructions": {{
-    "persona": "Anda adalah seorang analis linguistik sistemik-fungsional dengan keahlian dalam teori Halliday.",
-    "task": "Lakukan analisis thematic progression terhadap kalimat berikut. Jika ada masalah dalam alur tema, tunjukkan secara spesifik klausa mana yang bermasalah, kutipan kalimatnya, dan berikan saran perbaikannya.",
-    "method": [
-      "1. Analisis Klausa: Bagi teks menjadi klausa dan identifikasi theme (titik awal informasi) dan rheme (informasi baru) tiap klausa.",
-      "2. Identifikasi Pola Thematic Progression: Tentukan apakah tiap klausa mengikuti pola berikut:",
-      "- Constant Theme: Tema tetap sama di beberapa klausa.",
-      "- Simple Linear Progression: Rheme sebelumnya jadi theme selanjutnya.",
-      "- Derived Theme: Tema berbeda berasal dari satu tema induk.",
-      "- Split Rheme Progression: Rheme bercabang ke beberapa theme selanjutnya.",
-      "3. Evaluasi Koherensi dan Kohesi: Apakah antar klausa saling berhubungan secara topikal dan referensial.",
-      "4. Identifikasi Masalah: Tandai klausa yang memiliki masalah perkembangan tema, termasuk abrupt/ruptured theme, pengulangan monoton, atau kurang transisi.",
-      "5. Berikan Saran: Jika ada masalah, sebutkan kutipan klausa bermasalah, jenis masalahnya, dan saran spesifik perbaikannya."
-    ],
-    "handling_unknown": "Kosongkan jika tidak ada masalah ditemukan."
+    "persona": "Ahli linguistik dengan spesialisasi dalam analisis thematic progression dan struktur kalimat.",
+    "task": "Identifikasi theme-rheme structure, pola thematic progression, dan masalah-masalah thematic progression",
+    "method": "Analisis bertahap: (1) Identifikasi theme dan rheme pada setiap klausa, (2) Klasifikasi jenis theme, (3) Analisis pola thematic progression, (4) Identifikasi masalah thematic progression berdasarkan 12 kategori masalah yang telah teridentifikasi dalam penelitian",
+    "handling_unknown": "Jika struktur kalimat ambiguous, berikan penjelasan alternatif dengan tingkat kepercayaan analisis"
   }},
   "output_format": {{
-    "kalimat": "<kalimat>",
-    "theme_rheme_per_klausa": {{
-      "klausa_1": {{
-        "kalimat": "<isi klausa>",
-        "theme": "<theme>",
-        "rheme": "<rheme>"
-      }},
-      "...": {{}}
+    "klausa": [],
+    "pola_tp": [],
+    "problems": [],
+    "feedback_progression": ""
+  }},
+  "context": {{
+    "relevant_information": {{
+      "definisi_klausa": "Klausa adalah gabungan dua kata atau lebih yang terdiri dari subjek dan predikat. Umumnya, klausa akan dilengkapi dengan objek, keterangan, dan pelengkap. Klausa sekilas memang mirip dengan kalimat, tetapi yang membedakan antara klausa dengan kalimat adalah klausa tidak dibubuhi tanda baca dan juga tidak memiliki intonasi akhir ketika dibaca.",
+      "definisi_theme_rheme": "Theme didefinisikan sebagai elemen yang muncul pertama dalam klausa yang mewakili apa yang dibicarakan dalam klausa tersebut. Rheme didefinisikan sebagai sisa klausa yang biasanya berisi informasi baru.",
+      "definisi_pola_thematic_progression": {{
+      "Constant Theme Pattern": "Pola dimana Theme yang sama dipertahankan di setiap klausa dalam rangkaian kalimat.",
+      "Linear Theme Pattern": "Pola dimana Rheme dari satu klausa menjadi Theme dari klausa berikutnya.",
+      "Split Rheme Pattern": "Pola dimana Rheme dari satu klausa memiliki dua komponen atau lebih, dan masing-masing komponen tersebut menjadi Theme dari klausa-klausa selanjutnya.",
+      "Derived Theme Pattern": "Theme baru diturunkan dari konteks yang lebih luas atau pengetahuan umum, Theme tidak secara langsung berasal dari Rheme sebelumnya, memungkinkan introduksi informasi baru yang relevan dengan topik utama, dan memberikan variasi dalam pengembangan ide."
     }},
-    "pola_thematic_progression": "<pola yang dominan atau campuran>",
-    "koherensi": "<evaluasi koherensi>",
-    "kohesi": "<evaluasi kohesi>",
-    "masalah_thematic_progression": [
+    "thematic_progression_problems": {{
+      "brand_new_theme": "Munculnya tema baru yang tidak memiliki hubungan dengan klausa sebelumnya, menyebabkan ketidakkoherensian dalam teks",
+      "overuse_constant_pattern": "Penggunaan berlebihan pola tema konstan yang membuat teks menjadi repetitif dan monoton",
+      "empty_rheme_undeveloped_rheme": "Rheme yang kosong atau tidak dikembangkan dengan baik, tidak memberikan informasi baru yang memadai",
+      "double_rheme": "Keberadaan dua rheme dalam satu klausa yang menyebabkan kebingungan struktur informasi",
+      "intervening_material_between_rheme": "Adanya material yang mengganggu antara theme dan rheme atau antar komponen rheme",
+      "incomplete_clause": "Klausa yang tidak lengkap strukturnya sehingga mengganggu alur thematic progression",
+      "lack_of_thematic_progression_loosely_thematic_flow": "Tidak adanya progression yang jelas atau alur tematik yang longgar antar klausa",
+      "subsequent_thematization": "Kesalahan dalam thematization berikutnya yang tidak mengikuti pola yang logis",
+      "confusing_selection_textual_theme": "Pemilihan textual theme yang membingungkan dan tidak tepat konteks",
+      "empty_themes": "Theme yang kosong atau tidak bermakna dalam konteks klausal",
+      "themes_undefined_reference": "Theme dengan referensi yang tidak jelas atau tidak terdefinisi",
+      "thematization_of_rheme": "Kesalahan dalam menjadikan rheme sebagai theme tanpa transisi yang tepat"
+    }},
+    "examples": [
+      {{
+        "kalimat": "Membahas pengaruh RUU TNI terhadap hubungan TNI dan POLRI jelas tidak relevan, apalagi jika disuarakan oleh orang-orang yang selama ini dikenal hanya mengejar kepentingan pribadi dan elit militer. Mereka yang membela RUU ini bukan benar-benar peduli pada keamanan nasional, tapi hanya ingin menjaga posisi dan akses mereka terhadap kekuasaan. Jadi, sulit untuk mempercayai argumen mereka ketika mereka sendiri selama ini terbukti tidak pernah berpihak pada kepentingan rakyat.",
+        "klausa": [
+          {{
+            "nomor": 1,
+            "theme": "Membahas pengaruh RUU TNI terhadap hubungan TNI dan POLRI",
+            "rheme": "jelas tidak relevan, apalagi jika disuarakan oleh orang-orang yang selama ini dikenal hanya mengejar kepentingan pribadi dan elit militer"
+          }},
+          {{
+            "nomor": 2,
+            "theme": "Mereka yang membela RUU ini",
+            "rheme": "bukan benar-benar peduli pada keamanan nasional, tapi hanya ingin menjaga posisi dan akses mereka terhadap kekuasaan"
+          }},
+          {{
+            "nomor": 3,
+            "theme": "Jadi, sulit untuk mempercayai argumen mereka",
+            "rheme": "ketika mereka sendiri selama ini terbukti tidak pernah berpihak pada kepentingan rakyat"
+          }}
+        ],
+        "pola_tp": [
+          {{
+            "Constant": {{
+              "penjelasan": "Terjadi pada Klausa 2 ke 3 yang merujuk pada theme yang sama 'mereka'."
+            }},
+            "Linear": {{
+              "penjelasan": "Terjadi pada Klausa 1 ke 2 di mana rheme pada klausa 1 'orang-orang' menjadi theme pada klausa 2 'Mereka'."
+            }},
+            "Split": {{
+              "penjelasan": "Tidak terjadi Pola Split dalam contoh ini."
+            }},
+            "Derived": {{
+              "penjelasan": "Tidak terjadi Pola Derived dalam contoh ini."
+            }}
+          }}
+        ],
+        "problems": [
+          {{
+            "klausa": "2",
+            "kutipan": "Mereka yang membela RUU ini",
+            "jenis_masalah": "brand_new_theme",
+            "feedback_progression": "Theme 'membela RUU TNI' tidak pernah disebutkan sebelumnya dalam konteks yang jelas, sebaiknya gunakan transisi yang lebih eksplisit."
+          }}
+        ]
+      }}
+    ],
+    "input_queries": {{
+      "kalimat": "{{kalimat}}"
+    }}
+  }},
+  "template_output": {{
+    "klausa": [],
+    "pola_tp": [
+      {{
+        "Constant": {{
+          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Constant]"
+        }},
+        "Linear": {{
+          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Linear]"
+        }},
+        "Split": {{
+          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Split]"
+        }},
+        "Derived": {{
+          "penjelasan": "[Penjelasan di mana saja klausa yang pola thematic progressionnya Derived]"
+        }}
+      }}
+    ],
+    "problems": [
       {{
         "klausa": "<nomor klausa>",
         "kutipan": "<kutipan klausa yang bermasalah>",
         "jenis_masalah": "<jenis masalah thematic>",
         "feedback_progression": "<saran perbaikan untuk klausa tersebut>"
       }}
-    ]
-  }},
-  "context": {{
-    "relevant_information": "Masalah dalam thematic progression biasanya mencakup tema yang berganti tiba-tiba, tidak ada transisi, repetisi membosankan, atau struktur klausa ambigu.",
-    "examples": [
-      {{
-        "kalimat": "Human history teems with stories of momentous blunders in a wide range of disciplines. Some of these consequential errors go all the way back to the Scriptures, or the Greek mythology.",
-        "theme_rheme_per_klausa": {{
-          "klausa_1": {{
-            "kalimat": "Human history teems with stories of momentous blunders in a wide range of disciplines.",
-            "theme": "Human history",
-            "rheme": "teems with stories of momentous blunders in a wide range of disciplines."
-          }},
-          "klausa_2": {{
-            "kalimat": "Some of these consequential errors go all the way back to the Scriptures, or the Greek mythology.",
-            "theme": "Some of these consequential errors",
-            "rheme": "go all the way back to the Scriptures, or the Greek mythology."
-          }}
-        }},
-        "pola_thematic_progression": "Simple Linear Progression",
-        "koherensi": "Alur hubungan antarklausa cukup jelas karena setiap theme pada klausa berikutnya tetap berkaitan erat dengan topik utama (blunders dalam sejarah).",
-        "kohesi": "Penggunaan kata ganti seperti 'these errors' mengacu ke kesalahan pada kalimat sebelumnya, menjaga hubungan antar kalimat.",
-        "masalah_thematic_progression": [],
-        "feedback_progression": ""
-      }},
-      {{
-        "kalimat": "The purpose of this book is to present in detail some of the surprising blunders of a few genuinely towering scientists. My goal is also to attempt to analyze the possible causes for these blunders.",
-        "theme_rheme_per_klausa": {{
-          "klausa_1": {{
-            "kalimat": "The purpose of this book is to present in detail some of the surprising blunders of a few genuinely towering scientists.",
-            "theme": "The purpose of this book",
-            "rheme": "is to present in detail some of the surprising blunders of a few genuinely towering scientists."
-          }},
-          "klausa_2": {{
-            "kalimat": "My goal is also to attempt to analyze the possible causes for these blunders.",
-            "theme": "My goal",
-            "rheme": "is also to attempt to analyze the possible causes for these blunders."
-          }}
-        }},
-        "pola_thematic_progression": "Brand-New Theme",
-        "koherensi": "Koheren secara umum karena membahas topik yang sama (tujuan buku).",
-        "kohesi": "Terdapat referensi kohesif seperti 'these blunders'.",
-        "masalah_thematic_progression": [
-          {{
-            "klausa": "2",
-            "kutipan": "My goal is also to attempt to analyze the possible causes for these blunders.",
-            "jenis_masalah": "Brand-New Theme",
-            "feedback_progression": "Sebaiknya gunakan referensi eksplisit ke theme sebelumnya, seperti 'This purpose also includes...' untuk menjaga kontinuitas."
-          }}
-        ]
-      }}
-    ]
-  }},
-  "input_query": [
-    {{
-      "kalimat": "{kalimat}"
-    }}
-  ]
-}}"""
+    ],
+    "feedback_progression": "<feedback umum tentang kualitas thematic progression dalam teks secara keseluruhan>"
+  }}
+}}
+"""
