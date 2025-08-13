@@ -289,7 +289,7 @@ class LogicalFallacyResponseWorker(Worker):
                 "sub_process_name": "Thematic Progression",
                 "input": {
                     "conclusion": message['data']['kesimpulan'],
-                    "premis": message['data']['premis'],
+                    "premis": message['data']['premis']
                     },
                 "output": progression,
             },
@@ -353,7 +353,7 @@ class LogicalFallacyResponseWorker(Worker):
             iterasi = 0
             message['data']['iterasi'] = iterasi
             log(f"LogicalFallacyResponseWorker processing completed successfully Cause More Than 3 Iteration. chat_id: {id}", "success")
-            
+            return
             
         elif iterasi == 1 and (message['data']['fallacy_type'] != "None" or message['data']['fallacy_type'] != None or message['data']['fallacy_type'] != "Unknown"):
             print(f"\nMASUK ITERASI KE {iterasi}\n\n")
@@ -414,7 +414,10 @@ class LogicalFallacyResponseWorker(Worker):
                     data={
                         "process_name": self.process_name,
                         "sub_process_name": "FOL Extraction",
-                        "input": response,
+                        "input": {
+                        "response": response,
+                            "number_of_iteration": message['data']['iterasi']
+                        },
                         "output": fol_transformation,
                     },
                     messageId=(str(uuid.uuid4()))
@@ -542,7 +545,10 @@ class LogicalFallacyResponseWorker(Worker):
                 data={
                     "process_name": self.process_name,
                     "sub_process_name": "FOL Extraction",
-                    "input": response,
+                    "input": {
+                        "response": response,
+                        "number_of_iteration": message['data']['iterasi']
+                    },
                     "output": fol_transformation,
                 },
                 messageId=(str(uuid.uuid4()))
