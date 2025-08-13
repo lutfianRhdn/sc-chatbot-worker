@@ -338,7 +338,7 @@ class LogicalFallacyResponseWorker(Worker):
         )    
 
         # ====== ITERASI START ======\
-        message['data']['iterasi'] = message['data'].get('iterasi', 0)
+        message['data']['iterasi'] = message['data'].get('iterasi', 1)
 
         print(f"INI MESSAGE ITERASI: {message['data']['iterasi']}\n\n")
         iterasi = message['data']['iterasi']
