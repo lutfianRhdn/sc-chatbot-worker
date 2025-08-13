@@ -179,7 +179,7 @@ class LogicalFallacyPromptWorker(Worker):
         prompt_progression = prompt_progression_template.format(
             kalimat=prompt_user
         )
-        print("prompt user progression",prompt_progression)
+        
         response = self.client.chat.completions.create(
             model= self.model_name,
             messages=[{
@@ -271,7 +271,7 @@ class LogicalFallacyPromptWorker(Worker):
             
             intent = self.intent(prompt_user)
             if message['data']['is_eval'] == False:
-                print("prompt user di Anlysis Semantic Intent",prompt_user)
+                
                 self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
                     data={
@@ -282,7 +282,7 @@ class LogicalFallacyPromptWorker(Worker):
                     },
                     messageId=(str(uuid.uuid4()))
                 )
-            print(prompt_user)
+            # print(prompt_user)
             thematic_progression = self.thematic_progression(prompt_user)
             print(thematic_progression)
             if message['data']['is_eval'] == False:
@@ -382,7 +382,7 @@ class LogicalFallacyPromptWorker(Worker):
             print(e)
 
     def intent_relationship(self, prompt_user, prompt_modification, semantic_intent_prompt, semantic_intent_modif):
-        print("prompt_user di intent relationship", prompt_user)
+        # print("prompt_user di intent relationship", prompt_user)
         prompt_intent_relationship = prompt_intent_relationship_template.format(
             prompt_user=prompt_user,
             prompt_modification=prompt_modification,
@@ -413,7 +413,7 @@ class LogicalFallacyPromptWorker(Worker):
         return parsed_result
     
     def modify_prompt(self, text, message, intent_relation, fallacy_type, user_intent, modified_intent):
-        print("message_modify",message)
+        # print("message_modify",message)
         chat_id = message['data']['chat_id']
         log("success remove logical fallacy from prompt on chatId : "+chat_id,'success')
         self.sendToOtherWorker(

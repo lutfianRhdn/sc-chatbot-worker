@@ -41,7 +41,7 @@ class SMTConverterWorker(Worker):
         self.os_type = platform.system()
         
         
-        log(f"SMTConverterWorker initialized on {self.os_type}", "info")
+        # log(f"SMTConverterWorker initialized on {self.os_type}", "info")
         
         #### until this part
         # start background threads *before* blocking server
@@ -250,7 +250,7 @@ class SMTConverterWorker(Worker):
             print(e)
 
     def smt_file_converter_from_response(self,message):
-        log("Converting FOL to SMT-LIB format", "info")
+        # log("Converting FOL to SMT-LIB format", "info")
         fol = message['data']['fol']
         
         fol_standardized = re.sub(r"∃", "exists ", fol)
@@ -325,6 +325,11 @@ class SMTConverterWorker(Worker):
                 # print("SUDAH KELUAR")
                 data = json.loads(respons)
                 script = data["smt_lib_v2"]
+
+                print("\n=== SMT File ===")
+                print(script)
+                print("===================\n")
+
                 
                 self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
@@ -356,8 +361,8 @@ class SMTConverterWorker(Worker):
             cvc5_path = os.path.join(base_path,'../cvc5/unix/bin/cvc5')
             if self.os_type =='Windows':
                 cvc5_path = os.path.join(base_path, r"../cvc5/windows/bin/cvc5.exe")
-            print(f"DEBUG - Using CVC5 path: {cvc5_path}")
-            print(self.os_type)
+            # print(f"DEBUG - Using CVC5 path: {cvc5_path}")
+            # print(self.os_type)
             possible_paths = [cvc5_path]
             for path in possible_paths:
                 try:
@@ -401,6 +406,7 @@ class SMTConverterWorker(Worker):
             if result.returncode != 0:
                 raise RuntimeError(f"CVC5 error (code {result.returncode}):\n{stderr_output}")
             if message['data']['is_eval'] == False:
+                # print("message is eval",(message['data']['is_eval']))
                 self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
                     data={
@@ -438,6 +444,12 @@ class SMTConverterWorker(Worker):
             )
             message['data']['model']= '-'
             message['data']['check_sat'] = "unknown"
+            
+            print("\n=== SMT Solver ===")
+            print(message['data']['check_sat'])
+            print(message['data']['model'])
+            print("===================\n")
+
             self.sendToOtherWorker(
                 messageId=message.get("messageId"),
                 destination=["CounterExampleCreatorWorker/counterexample_interpretation/"],
