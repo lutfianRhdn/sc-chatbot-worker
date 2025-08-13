@@ -257,6 +257,81 @@ class LogicalFallacyResponseWorker(Worker):
         print(json.dumps(message, indent=4))
         if message['data']['fallacy_type'] == "None" or message['data']['fallacy_type'] == None or message['data']['fallacy_type'] == "Unknown":
             self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "FOL Extraction",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_fol_extraction']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_fol_extraction']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Generate SMT file",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_generate_smt_file']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_generate_smt_file']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Running SMT Solver",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_running_smt_solver']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_running_smt_solver']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Counterexample Interpretation",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_counterexample_interpretation']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_counterexample_interpretation']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Logical fallacy Classification",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_logical_fallacy_classification']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_logical_fallacy_classification']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Thematic Progression",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_thematic_progression']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_thematic_progression']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Modify Response",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_modify_respons']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_modify_respons']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+            self.sendToOtherWorker(
                         destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
                         data={
                             "process_name": self.process_name,
@@ -282,19 +357,12 @@ class LogicalFallacyResponseWorker(Worker):
             "pola_tp":progression['pola_tp'],
             "problems":progression['problems']
         }
-        self.sendToOtherWorker(
-            destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
-            data={
-                "process_name": self.process_name,
-                "sub_process_name": "Thematic Progression",
-                "input": {
+        
+        message['data']['hasil_thematic_progression'].append({"input": {
                     "conclusion": message['data']['kesimpulan'],
                     "premis": message['data']['premis']
                     },
-                "output": progression,
-            },
-            messageId=(str(uuid.uuid4()))
-        )
+                "output": progression})
         # print(f"🧮 Hasil Identifikasi TP: {progression}")
         print(json.dumps(message, indent=4))
         print(json.dumps(progression, indent=4))
@@ -312,21 +380,13 @@ class LogicalFallacyResponseWorker(Worker):
             "kalimat_keseluruhan": str(modified_response['kalimat_keseluruhan']+"\n"+message['data']['references'])
         }
         
-        self.sendToOtherWorker(
-            destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
-            data={
-                "process_name": self.process_name,
-                "sub_process_name": "Modify Response",
-                "input": {
+        message['data']['hasil_modify_respons'].append({"input": {
                     "respons_chatbot": message['data']['prompt'],
                     "counter_example": message['data']['interpretasi'],
                     "logical_fallacy": message['data']['fallacy_type'],
                     "thematic_progression_problems": str(progression),
                     },
-                "output": modified_response,
-            },
-            messageId=(str(uuid.uuid4()))
-        )
+                "output": modified_response})
         
         self.sendToOtherWorker(
             destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
@@ -343,7 +403,82 @@ class LogicalFallacyResponseWorker(Worker):
         print(f"INI MESSAGE ITERASI: {message['data']['iterasi']}\n\n")
         iterasi = message['data']['iterasi']
         iterasi += 1
-        if iterasi == 3:
+        if iterasi == 4:
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "FOL Extraction",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_fol_extraction']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_fol_extraction']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Generate SMT file",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_generate_smt_file']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_generate_smt_file']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Running SMT Solver",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_running_smt_solver']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_running_smt_solver']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Counterexample Interpretation",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_counterexample_interpretation']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_counterexample_interpretation']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Logical fallacy Classification",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_logical_fallacy_classification']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_logical_fallacy_classification']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Thematic Progression",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_thematic_progression']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_thematic_progression']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Modify Response",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_modify_respons']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_modify_respons']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
             self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateFinalAnswer/{message['data']['chat_id']}"],
                 data={
@@ -357,7 +492,7 @@ class LogicalFallacyResponseWorker(Worker):
             log(f"LogicalFallacyResponseWorker processing completed successfully Cause More Than 3 Iteration. chat_id: {id}", "success")
             return
             
-        elif iterasi == 1 and (message['data']['fallacy_type'] != "None" or message['data']['fallacy_type'] != None or message['data']['fallacy_type'] != "Unknown"):
+        elif iterasi >= 0 and (message['data']['fallacy_type'] != "None" or message['data']['fallacy_type'] != None or message['data']['fallacy_type'] != "Unknown"):
             print(f"\nMASUK ITERASI KE {iterasi}\n\n")
             message['data']['iterasi'] = iterasi
             iterasi += 1
@@ -399,32 +534,99 @@ class LogicalFallacyResponseWorker(Worker):
                 response = response
                 references = ""
 
-            self.sendToOtherWorker(
-                destination=[f"DatabaseInteractionWorker/createNewProgress/{message['data']['chat_id']}"],
-                data={
-                    "process_name": self.process_name,
-                    "input": response,
-                    "output": "",
-                },
-                messageId= str(uuid.uuid4())
-            )
+            # self.sendToOtherWorker(
+            #     destination=[f"DatabaseInteractionWorker/createNewProgress/{message['data']['chat_id']}"],
+            #     data={
+            #         "process_name": self.process_name,
+            #         "input": response,
+            #         "output": "",
+            #     },
+            #     messageId= str(uuid.uuid4())
+            # )
             fol_transformation = self.fol_transformation(response, references, messages)
-            
-        
-            self.sendToOtherWorker(
+            message['data']['hasil_fol_extraction'].append({"input": response, "output":{'premis':fol_transformation['premis'],
+                'kesimpulan':fol_transformation['conclusion'],
+                'term_premis':fol_transformation['terms_premis'],
+                'terms_kesimpulan':fol_transformation['terms_kesimpulan'],
+                'atomic_formula_premis':fol_transformation['atomic_formula_premis'],
+                'atomic_formula_kesimpulan':fol_transformation['atomic_formula_kesimpulan'],
+                "fol":fol_transformation['fol']}})
+            if fol_transformation['fol'] == "":
+                self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
                     data={
                         "process_name": self.process_name,
                         "sub_process_name": "FOL Extraction",
-                        "input": {
-                        "response": response,
-                            "number_of_iteration": message['data']['iterasi']
-                        },
-                        "output": fol_transformation,
+                        "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_fol_extraction']],
+                        "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_fol_extraction']],
                     },
                     messageId=(str(uuid.uuid4()))
                 )
-            if fol_transformation['fol'] == "":
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": message["data"]["process_name"],
+                        "sub_process_name": "Generate SMT file",
+                        "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_generate_smt_file']],
+                        "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_generate_smt_file']],
+                    },
+                    messageId=(str(uuid.uuid4()))
+                )
+
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": message["data"]["process_name"],
+                        "sub_process_name": "Running SMT Solver",
+                        "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_running_smt_solver']],
+                        "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_running_smt_solver']],
+                    },
+                    messageId=(str(uuid.uuid4()))
+                )
+
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": message["data"]["process_name"],
+                        "sub_process_name": "Counterexample Interpretation",
+                        "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_counterexample_interpretation']],
+                        "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_counterexample_interpretation']],
+                    },
+                    messageId=(str(uuid.uuid4()))
+                )
+
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": message["data"]["process_name"],
+                        "sub_process_name": "Logical fallacy Classification",
+                        "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_logical_fallacy_classification']],
+                        "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_logical_fallacy_classification']],
+                    },
+                    messageId=(str(uuid.uuid4()))
+                )
+
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": self.process_name,
+                        "sub_process_name": "Thematic Progression",
+                        "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_thematic_progression']],
+                        "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_thematic_progression']],
+                    },
+                    messageId=(str(uuid.uuid4()))
+                )
+
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": self.process_name,
+                        "sub_process_name": "Modify Response",
+                        "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_modify_respons']],
+                        "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_modify_respons']],
+                    },
+                    messageId=(str(uuid.uuid4()))
+                )
                 self.sendToOtherWorker(
                     destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
                     data={
@@ -461,11 +663,94 @@ class LogicalFallacyResponseWorker(Worker):
                     'atomic_formula_kesimpulan':fol_transformation['atomic_formula_kesimpulan'],
                     'messages':fol_transformation['messages'],
                     'process_name': self.process_name,
+                    'iterasi': iterasi,
+                    'hasil_fol_extraction': message['data']['hasil_fol_extraction'],
+                    'hasil_generate_smt_file': message['data']['hasil_generate_smt_file'],
+                    'hasil_running_smt_solver': message['data']['hasil_running_smt_solver'],
+                    'hasil_counterexample_interpretation': message['data']['hasil_counterexample_interpretation'],
+                    'hasil_logical_fallacy_classification': message['data']['hasil_logical_fallacy_classification'],
+                    'hasil_thematic_progression': message['data']['hasil_thematic_progression'],
+                    'hasil_modify_respons': message['data']['hasil_modify_respons'],
                     'chat_id': message['data']['chat_id'],
                     'is_eval':False
                 }
             )
         else:
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "FOL Extraction",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_fol_extraction']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_fol_extraction']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Generate SMT file",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_generate_smt_file']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_generate_smt_file']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Running SMT Solver",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_running_smt_solver']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_running_smt_solver']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Counterexample Interpretation",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_counterexample_interpretation']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_counterexample_interpretation']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Logical fallacy Classification",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_logical_fallacy_classification']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_logical_fallacy_classification']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Thematic Progression",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_thematic_progression']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_thematic_progression']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Modify Response",
+                    "input": [item["input"] if item["input"] else "" for item in message['data']['hasil_modify_respons']],
+                    "output": [item["output"] if item["output"] else "" for item in message['data']['hasil_modify_respons']],
+                },
+                messageId=(str(uuid.uuid4()))
+            )
             self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateFinalAnswer/{message['data']['chat_id']}"],
                 data={
@@ -491,6 +776,13 @@ class LogicalFallacyResponseWorker(Worker):
         data = message.get("data", {})
         response = data['response']
         messages = []
+        hasil_fol_extraction = []
+        hasil_generate_smt_file = []
+        hasil_running_smt_solver = []
+        hasil_counterexample_interpretation = []
+        hasil_logical_fallacy_classification = []
+        hasil_thematic_progression = []
+        hasil_modify_respons = []
         message['data']['iterasi'] = 0
         try:
             # Pola regex: mencari header referensi yang fleksibel
@@ -542,20 +834,89 @@ class LogicalFallacyResponseWorker(Worker):
         fol_transformation = self.fol_transformation(response, references, messages)
         
         print("MASUK KESINI")
-        self.sendToOtherWorker(
+        hasil_fol_extraction.append({"input": response, "output":{'premis':fol_transformation['premis'],
+                'kesimpulan':fol_transformation['conclusion'],
+                'term_premis':fol_transformation['terms_premis'],
+                'terms_kesimpulan':fol_transformation['terms_kesimpulan'],
+                'atomic_formula_premis':fol_transformation['atomic_formula_premis'],
+                'atomic_formula_kesimpulan':fol_transformation['atomic_formula_kesimpulan'],
+                "fol":fol_transformation['fol']}})
+        if fol_transformation['fol'] == "":
+            self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
                 data={
                     "process_name": self.process_name,
                     "sub_process_name": "FOL Extraction",
-                    "input": {
-                        "response": response,
-                        "number_of_iteration": message['data']['iterasi']
-                    },
-                    "output": fol_transformation,
+                    "input": [response],
+                    "output": [fol_transformation]
                 },
                 messageId=(str(uuid.uuid4()))
             )
-        if fol_transformation['fol'] == "":
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Generate SMT file",
+                    "input": hasil_generate_smt_file,
+                    "output": hasil_generate_smt_file
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Running SMT Solver",
+                    "input": hasil_running_smt_solver,
+                    "output": hasil_running_smt_solver
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Counterexample Interpretation",
+                    "input": hasil_counterexample_interpretation,
+                    "output": hasil_counterexample_interpretation
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Logical fallacy Classification",
+                    "input": hasil_logical_fallacy_classification,
+                    "output": hasil_logical_fallacy_classification
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Thematic Progression",
+                    "input": hasil_thematic_progression,
+                    "output": hasil_thematic_progression
+                },
+                messageId=(str(uuid.uuid4()))
+            )
+
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "sub_process_name": "Modify Response",
+                    "input": hasil_modify_respons,
+                    "output": hasil_modify_respons
+                },
+                messageId=(str(uuid.uuid4()))
+            )
             self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
                 data={
@@ -593,6 +954,13 @@ class LogicalFallacyResponseWorker(Worker):
                 'messages':fol_transformation['messages'],
                 'process_name': self.process_name,
                 'iterasi': 0,
+                'hasil_fol_extraction': hasil_fol_extraction,
+                'hasil_generate_smt_file': hasil_generate_smt_file,
+                'hasil_running_smt_solver': hasil_running_smt_solver,
+                'hasil_counterexample_interpretation': hasil_counterexample_interpretation,
+                'hasil_logical_fallacy_classification': hasil_logical_fallacy_classification,
+                'hasil_thematic_progression': hasil_thematic_progression,
+                'hasil_modify_respons': hasil_modify_respons,
                 'chat_id': data.get('chat_id', 'unknown_chat_id'),
                 'is_eval':False
             }

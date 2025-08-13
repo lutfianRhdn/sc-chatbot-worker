@@ -264,19 +264,22 @@ class SMTConverterWorker(Worker):
 
         try:
             script = CVCGenerator(fol_standardized).generateCVCScript() 
-            
-            self.sendToOtherWorker(
-                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
-                    data={
-                        "process_name": message["data"]["process_name"],
-                        "sub_process_name": "Generate SMT file",
-                        "input": fol_standardized,
-                        "output": script,
-                    },
-                    messageId=(str(uuid.uuid4()))
-                )
-            self.smt_solver(script,message)
-            
+            if message['data']['type'] == "prompt":
+                self.sendToOtherWorker(
+                        destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                        data={
+                            "process_name": message["data"]["process_name"],
+                            "sub_process_name": "Generate SMT file",
+                            "input": fol_standardized,
+                            "output": script,
+                        },
+                        messageId=(str(uuid.uuid4()))
+                    )
+                self.smt_solver(script,message)
+            else:
+                message['data']['hasil_generate_smt_file'].append({"input": fol_standardized,
+                            "output": script})     
+                self.smt_solver(script,message)       
         except Exception as e:
             traceback.print_exc()
             log(f"Error in SMT file conversion: {e}", "error")
@@ -330,19 +333,29 @@ class SMTConverterWorker(Worker):
                 print(script)
                 print("===================\n")
 
-                
-                self.sendToOtherWorker(
-                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
-                    data={
-                        "process_name": message["data"]["process_name"],
-                        "sub_process_name": "Generate SMT file",
-                        "input": fol_standardized,
-                        "output": script,
-                    },
-                    messageId=(str(uuid.uuid4()))
-                )
+                if message['data']['type'] == "prompt":
+                    self.sendToOtherWorker(
+                        destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                        data={
+                            "process_name": message["data"]["process_name"],
+                            "sub_process_name": "Generate SMT file",
+                            "input": fol_standardized,
+                            "output": script,
+                        },
+                        messageId=(str(uuid.uuid4()))
+                    )
+                else:
+                    print("=================")
+                    print(f"ISI MESSAGE")
+                    print(message['data'])
+                    print("====================")
+                    message['data']['hasil_generate_smt_file'].append({"input": fol_standardized,
+                            "output": script})
                 self.smt_solver(script,message)
             except Exception as e:
+                if message['data']['type'] != "prompt":
+                    message['data']['hasil_generate_smt_file'].append({"input": fol_standardized,
+                            "output": "No Script"})
                 message['data']['model']= ""
                 message['data']['check_sat'] = "unknown"
                 self.sendToOtherWorker(
@@ -407,19 +420,26 @@ class SMTConverterWorker(Worker):
                 raise RuntimeError(f"CVC5 error (code {result.returncode}):\n{stderr_output}")
             if message['data']['is_eval'] == False:
                 # print("message is eval",(message['data']['is_eval']))
-                self.sendToOtherWorker(
-                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
-                    data={
-                        "process_name": message["data"]["process_name"],
-                        "sub_process_name": "Running SMT Solver",
-                        "input": smt2_code,
-                        "output": {
-                            "check_sat": check_sat,
-                            "counterexample": counterexample
+                if message['data']['type'] == "prompt":
+                    self.sendToOtherWorker(
+                        destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                        data={
+                            "process_name": message["data"]["process_name"],
+                            "sub_process_name": "Running SMT Solver",
+                            "input": smt2_code,
+                            "output": {
+                                "check_sat": check_sat,
+                                "counterexample": counterexample
+                            },
                         },
-                    },
-                    messageId=(str(uuid.uuid4()))
-                )
+                        messageId=(str(uuid.uuid4()))
+                    )
+                else:
+                    message['data']['hasil_running_smt_solver'].append({"input": smt2_code,
+                            "output": {
+                                "check_sat": check_sat,
+                                "counterexample": counterexample
+                            }})
             message['data']['model']= counterexample
             message['data']['check_sat'] = check_sat or "unknown"
             self.sendToOtherWorker(
@@ -429,19 +449,26 @@ class SMTConverterWorker(Worker):
         except Exception as e:
             traceback.print_exc()
             log(f"Error running CVC5: {e}", "error")
-            self.sendToOtherWorker(
-                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
-                data={
-                    "process_name": message["data"]["process_name"],
-                    "sub_process_name": "Running SMT Solver",
-                    "input": smt2_code,
-                    "output": {
-                        "check_sat": "-",
-                        "counterexample": "unknown"
+            if message['data']['type'] == "prompt":
+                self.sendToOtherWorker(
+                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                    data={
+                        "process_name": message["data"]["process_name"],
+                        "sub_process_name": "Running SMT Solver",
+                        "input": smt2_code,
+                        "output": {
+                            "check_sat": "-",
+                            "counterexample": "unknown"
+                        },
                     },
-                },
-                messageId=(str(uuid.uuid4()))
-            )
+                    messageId=(str(uuid.uuid4()))
+                )
+            else:
+                message['data']['hasil_running_smt_solver'].append({"input": smt2_code,
+                            "output": {
+                                "check_sat": "-",
+                                "counterexample": "unknown"
+                            }})
             message['data']['model']= '-'
             message['data']['check_sat'] = "unknown"
             
