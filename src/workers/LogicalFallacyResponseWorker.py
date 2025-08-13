@@ -337,7 +337,9 @@ class LogicalFallacyResponseWorker(Worker):
             messageId= str(uuid.uuid4())
         )    
 
-        # ====== ITERASI START ======
+        # ====== ITERASI START ======\
+        message['data']['iterasi'] = message['data'].get('iterasi', 0)
+
         print(f"INI MESSAGE ITERASI: {message['data']['iterasi']}\n\n")
         iterasi = message['data']['iterasi']
         iterasi += 1
