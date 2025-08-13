@@ -256,6 +256,14 @@ class LogicalFallacyResponseWorker(Worker):
         print(json.dumps(message, indent=4))
         if message['data']['fallacy_type'] == "None" or message['data']['fallacy_type'] == None:
             self.sendToOtherWorker(
+                        destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
+                        data={
+                            "process_name": self.process_name,
+                            "output": message['data']['prompt']+"\n"+message['data']['references'],
+                        },
+                        messageId= str(uuid.uuid4())
+                    )       
+            self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateFinalAnswer/{message['data']['chat_id']}"],
                 data={
                     "process_name": self.process_name,
@@ -409,6 +417,14 @@ class LogicalFallacyResponseWorker(Worker):
                 messageId=(str(uuid.uuid4()))
             )
         if fol_transformation['fol'] == "":
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateOutputProcess/{message['data']['chat_id']}"],
+                data={
+                    "process_name": self.process_name,
+                    "output": data['response'],
+                },
+                messageId= str(uuid.uuid4())
+            )       
             self.sendToOtherWorker(
                 destination=[f"DatabaseInteractionWorker/updateFinalAnswer/{message['data']['chat_id']}"],
                 data={

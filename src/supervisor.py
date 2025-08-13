@@ -129,20 +129,8 @@ class Supervisor:
         for dest in dests:
           if dest != 'supervisor':
               self._send_to_worker(dest, message)
-              return
-        if(status != 'healthy' ):
-            pass
-            # log(f"Handling message from worker {self._workers[pid]['name']}({pid}) with status :{status}", "info")
-        # Supervisor-specific handling
-        if status == 'healthy':
-            instance = message.get('messageId', '')
-            worker_name = instance.split('-')[0] if instance else ''
-            self.workers_health[pid] = {
-                'is_healthy': True,
-                'worker_name': worker_name,
-                'timestamp': time.time()
-            }
-        elif status == 'completed' and dest:
+          continue  
+        if status == 'completed' and dest:
             worker_name = dest.split('/')[0].split('.')[0]
             self.remove_pending_message(worker_name, msg_id)
         
