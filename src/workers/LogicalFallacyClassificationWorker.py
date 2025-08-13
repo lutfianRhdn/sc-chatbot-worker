@@ -104,40 +104,26 @@ class LogicalFallacyClassificationWorker(Worker):
         parsed = json.loads(llm_response)
         messages.append({"role": "assistant", "content": str(parsed)})
         if message['data']['is_eval'] == False:
-            if message['data']['type'] == "prompt":
-                self.sendToOtherWorker(
-                    destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
-                    data={
-                        "process_name": message["data"]["process_name"],
-                        "sub_process_name": "Logical fallacy Classification",
-                        "input": {
-                            "premis" :premise,
-                            "kesimpulan" :conclusion,
-                            "interpretasi" :interpretation,
-                            "kalimat" :prompt,
-                            "fallacy_data" : fallacy_data                    
-                        },
-                        "output": {
-                            "fallacy_type":parsed.get("fallacy_type", "Unknown"),
-                            "fallacy_location":parsed.get("fallacy_location", {}),
-                            "feedback":parsed.get("feedback", "Tidak ada feedback."),
-                        },
+            self.sendToOtherWorker(
+                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                data={
+                    "process_name": message["data"]["process_name"],
+                    "sub_process_name": "Logical fallacy Classification",
+                    "input": {
+                        "premis" :premise,
+                        "kesimpulan" :conclusion,
+                        "interpretasi" :interpretation,
+                        "kalimat" :prompt,
+                        "fallacy_data" : fallacy_data                    
                     },
-                    messageId=(str(uuid.uuid4()))
-                )
-            else:
-                message['data']['hasil_logical_fallacy_classification'].append({"input": {
-                            "premis" :premise,
-                            "kesimpulan" :conclusion,
-                            "interpretasi" :interpretation,
-                            "kalimat" :prompt,
-                            "fallacy_data" : fallacy_data                    
-                        },
-                        "output": {
-                            "fallacy_type":parsed.get("fallacy_type", "Unknown"),
-                            "fallacy_location":parsed.get("fallacy_location", {}),
-                            "feedback":parsed.get("feedback", "Tidak ada feedback."),
-                        }})
+                    "output": {
+                        "fallacy_type":parsed.get("fallacy_type", "Unknown"),
+                        "fallacy_location":parsed.get("fallacy_location", {}),
+                        "feedback":parsed.get("feedback", "Tidak ada feedback."),
+                    },
+                },
+                messageId=(str(uuid.uuid4()))
+            )
         message['data']['fallacy_type'] = parsed.get("fallacy_type", "Unknown")
         message['data']['fallacy_location'] = parsed.get("fallacy_location", {})
         message['data']['feedback'] = parsed.get("feedback", "Tidak ada feedback.")

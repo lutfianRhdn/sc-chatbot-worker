@@ -164,42 +164,27 @@ class CounterExampleCreatorWorker(Worker):
                 message["data"]['messages'] = messages
                 # log("counterexample_interpretation, ✅ Interpretasi counterexample berhasil dibuat.", "info")
                 if message['data']['is_eval'] == False:
-                    if message['data']['type'] == "prompt":
-                        self.sendToOtherWorker(
-                                destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
-                                data={
-                                    "process_name": message["data"]["process_name"],
-                                    "sub_process_name": "Counterexample Interpretation",
-                                    "input": {
-                                        "model": model,
-                                        "prompt": prompt_pengguna,
-                                        "premis": premis,
-                                        "kesimpulan": kesimpulan,
-                                        "terms_premis": terms_premis,
-                                        "terms_kesimpulan": terms_kesimpulan,
-                                        "atomic_formula_premis": atomic_formula_premis if( message['data']['type'] !='prompt') else "",
-                                        "atomic_formula_kesimpulan": atomic_formula_kesimpulan if( message['data']['type'] !='prompt') else "",
-                                        "predikat": predikat if( message['data']['type'] =='prompt') else "",
-                                        "fol": fol,
-                                        },
-                                    "output": message['data']['interpretasi'],
-                                },
-                                messageId=(str(uuid.uuid4()))
-                            )
-                    else:
-                        message['data']['hasil_counterexample_interpretation'].append({"input": {
-                                        "model": model,
-                                        "prompt": prompt_pengguna,
-                                        "premis": premis,
-                                        "kesimpulan": kesimpulan,
-                                        "terms_premis": terms_premis,
-                                        "terms_kesimpulan": terms_kesimpulan,
-                                        "atomic_formula_premis": atomic_formula_premis if( message['data']['type'] !='prompt') else "",
-                                        "atomic_formula_kesimpulan": atomic_formula_kesimpulan if( message['data']['type'] !='prompt') else "",
-                                        "predikat": predikat if( message['data']['type'] =='prompt') else "",
-                                        "fol": fol,
-                                        },
-                                    "output": message['data']['interpretasi']})
+                    self.sendToOtherWorker(
+                            destination=[f"DatabaseInteractionWorker/updateProgress/{message['data']['chat_id']}"],
+                            data={
+                                "process_name": message["data"]["process_name"],
+                                "sub_process_name": "Counterexample Interpretation",
+                                "input": {
+                                    "model": model,
+                                    "prompt": prompt_pengguna,
+                                    "premis": premis,
+                                    "kesimpulan": kesimpulan,
+                                    "terms_premis": terms_premis,
+                                    "terms_kesimpulan": terms_kesimpulan,
+                                    "atomic_formula_premis": atomic_formula_premis if( message['data']['type'] !='prompt') else "",
+                                    "atomic_formula_kesimpulan": atomic_formula_kesimpulan if( message['data']['type'] !='prompt') else "",
+                                    "predikat": predikat if( message['data']['type'] =='prompt') else "",
+                                    "fol": fol,
+                                    },
+                                "output": message['data']['interpretasi'],
+                            },
+                            messageId=(str(uuid.uuid4()))
+                        )
                 self.sendToOtherWorker(
                         messageId=message.get("messageId"),
                         destination=["LogicalFallacyClassificationWorker/prepare_classification/"],
